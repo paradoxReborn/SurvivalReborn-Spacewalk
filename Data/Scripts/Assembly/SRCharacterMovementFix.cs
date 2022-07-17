@@ -37,12 +37,12 @@ namespace SurvivalReborn
             public SRCharacterInfo(IMyCharacter character)
             {
                 LastKnownParent = character.Parent;
-                //CollisionDamageDisabled = true; // disabled for the frame the character enters the world
-                CollisionDisabledForFrames = 2;
+                CollisionDamageDisabled = true; // disabled until character moves to prevent damage on world load on moving ship
+                CollisionDisabledForFrames = 2; // disabled for two frames to prevent damage on respawn on moving ship
             }
 
             public IMyEntity LastKnownParent;
-            //public bool CollisionDamageDisabled;
+            public bool CollisionDamageDisabled;
             public int CollisionDisabledForFrames;
         }
 
@@ -125,9 +125,12 @@ namespace SurvivalReborn
                 IMyCharacter character = entry.Key;
                 SRCharacterInfo info = entry.Value;
 
-                if (!character.Physics.HasRigidBody)
+                if (info.CollisionDamageDisabled)
                 {
-                    MyAPIGateway.Utilities.ShowNotification("ATTEMPTING TO PREVENT BUG!");
+                    if(character.Physics.LinearAcceleration.Length() > 0)
+                    {
+                        info.CollisionDamageDisabled = false;
+                    }
                     continue;
                 }
 
