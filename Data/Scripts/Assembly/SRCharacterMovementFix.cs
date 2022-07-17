@@ -37,13 +37,13 @@ namespace SurvivalReborn
             public SRCharacterInfo(IMyCharacter character)
             {
                 LastKnownParent = character.Parent;
-                CollisionDamageDisabled = true; // disabled for the frame the character enters the world
-                //CollisionDisabledForFrames = 0;
+                //CollisionDamageDisabled = true; // disabled for the frame the character enters the world
+                CollisionDisabledForFrames = 2;
             }
 
             public IMyEntity LastKnownParent;
-            public bool CollisionDamageDisabled;
-            //public int CollisionDisabledForFrames;
+            //public bool CollisionDamageDisabled;
+            public int CollisionDisabledForFrames;
         }
 
         // List of characters to apply fall damage game rule to
@@ -125,18 +125,25 @@ namespace SurvivalReborn
                 IMyCharacter character = entry.Key;
                 SRCharacterInfo info = entry.Value;
 
+                if (!character.Physics.HasRigidBody)
+                {
+                    MyAPIGateway.Utilities.ShowNotification("ATTEMPTING TO PREVENT BUG!");
+                    continue;
+                }
+
                 // If parent changed this frame, ignore collision damage and update last known parent.
                 if (info.LastKnownParent != character.Parent)
                 {
                     charactersToUpdate.Add(character);
                 }
                 // If parent didn't change this frame, go ahead with possible collision damage unless it's disabled
-                else if (!info.CollisionDamageDisabled)
+                //else if (!info.CollisionDamageDisabled)
+                else if (info.CollisionDisabledForFrames <= 0)
                 {
                     float accel = character.Physics.LinearAcceleration.Length();
                     if (accel > DAMAGE_THRESHOLD)
                     {
-                        float damage = Math.Min(IGNORE_ABOVE, DAMAGE_PER_MSS * (accel - DAMAGE_THRESHOLD));
+                        float damage = Math.Min(IGNORE_ABOVE * DAMAGE_PER_MSS, DAMAGE_PER_MSS * (accel - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("Did collision damage for " + accel + " m/s/s");
                         MyAPIGateway.Utilities.ShowNotification("OOF! " + accel + " m/s/s", 5000, "Red");
@@ -144,7 +151,8 @@ namespace SurvivalReborn
                 }
                 else
                 {
-                    info.CollisionDamageDisabled = false;
+                    //info.CollisionDamageDisabled = false;
+                    info.CollisionDisabledForFrames--;
                 }
             }
 
@@ -156,7 +164,8 @@ namespace SurvivalReborn
                 // Update parent and disable collision damage for the next frame.
                 // (Damage would normally occur on the following frame)
                 info.LastKnownParent = character.Parent;
-                info.CollisionDamageDisabled = true;
+                //info.CollisionDamageDisabled = true;
+                info.CollisionDisabledForFrames = 2;
                 MyAPIGateway.Utilities.ShowNotification("Character parent changed to " + character.Parent);
             }
             charactersToUpdate.Clear();
