@@ -45,7 +45,7 @@ namespace SurvivalReborn
         // Game rules for fall damage - settings are in m/s/s
         const float DAMAGE_THRESHOLD = 750f;
         const float IGNORE_ABOVE = 1500f; // Should be roughly where vanilla damage starts
-        const float DAMAGE_PER_MSS = 0.04f;
+        const float DAMAGE_PER_MSS = 0.03f;
 
         // Defaults to restore
         private float m_defaultCharacterGravity;
@@ -175,7 +175,7 @@ namespace SurvivalReborn
                         float damage = Math.Min(IGNORE_ABOVE * DAMAGE_PER_MSS, DAMAGE_PER_MSS * (accel - DAMAGE_THRESHOLD));
                         info.Character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("SurvivalReborn: Did collision damage for " + accel + " m/s/s");
-                        //MyAPIGateway.Utilities.ShowNotification("OOF! " + accel + " m/s/s", 5000, "Red");
+                        //MyAPIGateway.Utilities.ShowNotification("DAMAGE! " + accel + " m/s/s", 10000, "Red");
                     }
                 }
                 // If collision damage is still disabled for some number of frames, decrement that number.
