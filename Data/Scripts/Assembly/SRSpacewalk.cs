@@ -78,12 +78,12 @@ namespace SurvivalReborn
                 {
                     if (gas.Id.SubtypeName == fuelName)
                     {
-                        MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
+                        //MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
                         FuelCapacity = gas.MaxCapacity;
-                        MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
+                        //MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
                         //break;
                     }
-                    MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
+                    //MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
                 }
 
                 Inventory = (MyInventory)character.GetInventory();
@@ -93,7 +93,7 @@ namespace SurvivalReborn
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
 
-                MyAPIGateway.Utilities.ShowNotification("Created character info with fuel capacity of " + FuelCapacity, 20000);
+                //MyAPIGateway.Utilities.ShowNotification("Created character info with fuel capacity of " + FuelCapacity, 20000);
 
                 // Initial inventory scan
                 // BUG: It sees oxygen tanks as hydrogen tanks because they have a subtype relationship
@@ -137,11 +137,11 @@ namespace SurvivalReborn
                     if(HoldsFuel(item))
                     {
                         //if (HoldsHydrogen(item))
-                            MyAPIGateway.Utilities.ShowNotification("Found an item that holds hydrogen in your inventory.");
+                            //MyAPIGateway.Utilities.ShowNotification("Found an item that holds hydrogen in your inventory.");
                         InventoryBottles.Add(new InventoryBottle(item));
                     }
                 }
-                MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
+                //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
             private bool HoldsFuel(MyPhysicalInventoryItem item)
@@ -237,8 +237,8 @@ namespace SurvivalReborn
                 // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                 character.OnMarkForClose += Character_OnMarkForClose;
 
-                MyAPIGateway.Utilities.ShowNotification("Added a character with " + m_characters[character].FuelCapacity + " fuel capacity", 20000);
-                MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
+                //MyAPIGateway.Utilities.ShowNotification("Added a character with " + m_characters[character].FuelCapacity + " fuel capacity", 20000);
+                //MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
             }
         }
 
@@ -252,7 +252,7 @@ namespace SurvivalReborn
                 m_characters[character].Close();
                 m_characters.Remove(character);
             }
-            MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
+            //MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
         }
 
         public override void UpdateBeforeSimulation()
@@ -269,7 +269,7 @@ namespace SurvivalReborn
                 {
                     // Can't remove while iterating or enumeration might fail, so do it afterward
                     m_toRemove.Add(character);
-                    MyAPIGateway.Utilities.ShowNotification("A character will be removed. There will be " + (m_characters.Count - 1) + " remaining.");
+                    //MyAPIGateway.Utilities.ShowNotification("A character will be removed. There will be " + (m_characters.Count - 1) + " remaining.");
                     // Don't do anything else to this character. We are done with it.
                     continue;
                 }
@@ -299,7 +299,7 @@ namespace SurvivalReborn
                         {
                             // Calculate correct amount to remove
                             float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
-                            MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
+                            //MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
 
                             // Set the fuel level back to what it should be.
                             float fixedGasLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) - gasToRemove;
@@ -331,8 +331,8 @@ namespace SurvivalReborn
                     {
                         float damage = Math.Min(IGNORE_ABOVE * DAMAGE_PER_MSS, DAMAGE_PER_MSS * (accel - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                        MyLog.Default.WriteLine("SurvivalReborn: Did collision damage for " + accel + " m/s/s");
-                        MyAPIGateway.Utilities.ShowNotification("DAMAGE! " + accel + " m/s/s", 10000, "Red");
+                        //MyLog.Default.WriteLine("SurvivalReborn: Did collision damage for " + accel + " m/s/s");
+                        //MyAPIGateway.Utilities.ShowNotification("DAMAGE! " + accel + " m/s/s", 10000, "Red");
                     }
                 }
             }
