@@ -1,0 +1,13 @@
+﻿<?xml version="1.0"?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<GasProperties>
+		<!-- Water included for compatibility with SR:Humanity -->
+		<Gas>
+			<Id>
+				<TypeId>MyObjectBuilder_GasProperties</TypeId>
+				<SubtypeId>Water</SubtypeId>
+			</Id>
+			<EnergyDensity>0</EnergyDensity>
+		</Gas>
+	</GasProperties>
+</Definitions>
