@@ -118,14 +118,6 @@
 				<Resource>
 					<Id>
 						<TypeId>GasProperties</TypeId>
-						<SubtypeId>xHydrogen</SubtypeId>
-					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>0.9785</Throughput>
-				</Resource>
-				<Resource>
-					<Id>
-						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
 					<MaxCapacity>40</MaxCapacity>
@@ -166,7 +158,7 @@
 					<FuelConverter>
 						<FuelId>
 							<TypeId>GasProperties</TypeId>
-							<SubtypeId>xHydrogen</SubtypeId>
+							<SubtypeId>Hydrogen</SubtypeId>
 						</FuelId>
 						<Efficiency>1</Efficiency>
 					</FuelConverter>

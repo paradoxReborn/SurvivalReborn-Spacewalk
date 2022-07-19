@@ -9,14 +9,5 @@
 			</Id>
 			<EnergyDensity>0</EnergyDensity>
 		</Gas>
-		<!-- Used in the system that prevents midair refueling -->
-		<Gas>
-			<Id>
-				<TypeId>MyObjectBuilder_GasProperties</TypeId>
-				<SubtypeId>xHydrogen</SubtypeId>
-			</Id>
-			<EnergyDensity>0.001556</EnergyDensity>
-			<!-- MWh/litres -->
-		</Gas>
 	</GasProperties>
 </Definitions>
