@@ -36,16 +36,12 @@ namespace SurvivalReborn
         {
             public SRCharacterInfo(IMyCharacter character)
             {
-                //Character = character;
-                //LastKnownParent = character.Parent;
                 Inventory = (MyInventory)character.GetInventory();
                 Inventory.ContentsAdded += Inventory_ContentsAdded; // Doesn't seem to work - maybe just rescan inventory on ContentsChanged
                 Inventory.ContentsRemoved += Inventory_ContentsRemoved; 
                 InventoryTanks = new List<InventoryTank>();
                 OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
-                //LastHydrogenLevel = 1f; // init to safe value
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
-                //CollisionDisabledForFrames = 2; // disabled for two frames to prevent damage on respawn on moving ship
 
                 // Scan inventory for H2 tanks
                 MyInventory inv = character.GetInventory() as MyInventory;
@@ -95,24 +91,14 @@ namespace SurvivalReborn
                 }
             }
 
-            //public IMyCharacter Character;
-            // Last parent for detecting change of parent
-            //public IMyEntity LastKnownParent;
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
-            // If greater than zero, will skip collision damage for this number of frames
-            //public int CollisionDisabledForFrames;
-
             // Must monitor character's inventory for Hydrogen tanks
             public MyInventory Inventory;
             // Maintained list of hydrogen tanks in player's inventory
             public List<InventoryTank> InventoryTanks;
             // Character's oxygencomponent stores hydrogen, oxygen, etc.
             public MyCharacterOxygenComponent OxygenComponent;
-            // Hydrogen level last tick for detecting changes
-            //public float LastHydrogenLevel;
-            // Jetpack state last tick for detecting changes
-            //public bool JetpackOn;
         }
 
         // Small class for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
@@ -130,10 +116,8 @@ namespace SurvivalReborn
         }
 
         // List of characters to apply game rules to
-        //List<SRCharacterInfo> m_characterInfos = new List<SRCharacterInfo>();
         Dictionary<IMyCharacter,SRCharacterInfo> m_characters = new Dictionary<IMyCharacter,SRCharacterInfo>();
-        // List of character infos to remove at the end of this tick
-        //List<SRCharacterInfo> m_toRemove = new List<SRCharacterInfo>();
+        // List of characters to remove from dictionary this tick
         List<IMyCharacter> m_toRemove = new List<IMyCharacter>();
 
         // Game rules for fall damage - settings are in m/s/s
@@ -202,12 +186,10 @@ namespace SurvivalReborn
             IMyCharacter character = obj as IMyCharacter;
             if (character != null)
             {
-                // Add to list
-                // BUG: This stupid event fires any time I get out of a seat. Need to make sure list doesn't already have a character before adding it.
-                // Better idea: just keep a list of characters that aren't in a seat.
+                // Add to dictionary
                 m_characters.Add(character,new SRCharacterInfo(character));
 
-                // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from list)
+                // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                 character.OnMarkForClose += Character_OnMarkForClose;
 
                 MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
@@ -226,29 +208,11 @@ namespace SurvivalReborn
             MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
         }
 
-        /*
-        private void RemoveInfoByCharacter(IMyCharacter character)
-        {
-            // Find and remove this character
-            foreach (SRCharacterInfo info in m_characterInfos)
-            {
-                if (info.Character.Equals(character))
-                {
-                    // Found it. Remove it and exit loop.
-                    m_characterInfos.Remove(info);
-                    break;
-                }
-            }
-            character.OnMarkForClose -= Character_OnMarkForClose;
-        }
-        */
-
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
 
             // Apply game rules to all living, unparented characters
-            //foreach (SRCharacterInfo info in m_characterInfos)
             foreach (KeyValuePair<IMyCharacter, SRCharacterInfo> pair in m_characters)
             {
                 IMyCharacter character = pair.Key;
