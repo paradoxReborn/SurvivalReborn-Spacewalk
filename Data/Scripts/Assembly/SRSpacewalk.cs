@@ -34,6 +34,20 @@ namespace SurvivalReborn
         // Ugly object-oriented way of doing this, but the nicer ways didn't play nicely.
         private class SRCharacterInfo
         {
+            // Small struct for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
+            public struct InventoryTank
+            {
+                public MyPhysicalInventoryItem Item;
+                public float lastKnownCapacity;
+                public float currentCapacity { get { return (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel; } }
+                public InventoryTank(MyPhysicalInventoryItem item)
+                {
+                    Item = item;
+                    lastKnownCapacity = (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel;
+                }
+
+            }
+
             public SRCharacterInfo(IMyCharacter character)
             {
                 Inventory = (MyInventory)character.GetInventory();
@@ -99,20 +113,6 @@ namespace SurvivalReborn
             public List<InventoryTank> InventoryTanks;
             // Character's oxygencomponent stores hydrogen, oxygen, etc.
             public MyCharacterOxygenComponent OxygenComponent;
-        }
-
-        // Small class for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
-        private struct InventoryTank
-        {
-            public MyPhysicalInventoryItem Item;
-            public float lastKnownCapacity;
-            public float currentCapacity { get { return (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel; } }
-            public InventoryTank(MyPhysicalInventoryItem item)
-            {
-                Item = item;
-                lastKnownCapacity = (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel;
-            }
-
         }
 
         // List of characters to apply game rules to
