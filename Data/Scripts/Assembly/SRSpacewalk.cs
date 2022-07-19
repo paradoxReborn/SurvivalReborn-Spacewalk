@@ -10,6 +10,7 @@ using Sandbox.Common.ObjectBuilders.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities.Character.Components;
 using Sandbox.Game.Entities;
+using Sandbox.Definitions;
 using VRage.Utils;
 
 namespace SurvivalReborn
@@ -26,93 +27,137 @@ namespace SurvivalReborn
     /// - Smooth out player movement a bit
     /// Defaults are restored on world close in case the mod is removed. Otherwise the world would keep the modded global values.
     /// 
-    /// 
+    /// Jetpack anti-refueling works regardless of the gas a specific character uses for fuel.
     /// </summary>
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation)]
     class SRSpacewalk : MySessionComponentBase
     {
-        // Ugly object-oriented way of doing this, but the nicer ways didn't play nicely.
+        // Data structure for keeping track of info about players
         private class SRCharacterInfo
         {
-            // Small struct for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
-            public struct InventoryTank
-            {
-                public MyPhysicalInventoryItem Item;
-                public float lastKnownCapacity;
-                public float currentCapacity { get { return (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel; } }
-                public InventoryTank(MyPhysicalInventoryItem item)
-                {
-                    Item = item;
-                    lastKnownCapacity = (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel;
-                }
-
-            }
-
-            public SRCharacterInfo(IMyCharacter character)
-            {
-                Inventory = (MyInventory)character.GetInventory();
-                Inventory.ContentsAdded += Inventory_ContentsAdded; // Doesn't seem to work - maybe just rescan inventory on ContentsChanged
-                Inventory.ContentsRemoved += Inventory_ContentsRemoved; 
-                InventoryTanks = new List<InventoryTank>();
-                OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
-                CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
-
-                // Scan inventory for H2 tanks
-                MyInventory inv = character.GetInventory() as MyInventory;
-                List<MyPhysicalInventoryItem> items = inv.GetItems();
-                foreach(MyPhysicalInventoryItem item in items)
-                {
-                    var gasItem = item.Content as MyObjectBuilder_GasContainerObject;
-                    if (gasItem != null)
-                    {
-                        InventoryTanks.Add(new InventoryTank(item));
-                    }
-                }
-                MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryTanks.Count + " hydrogen tanks.");
-            }
-
-            // When something's added to this inventory, check if it's a tank and list it if so.
-            // BUG: This event doesn't fire when a player adds an item to inventory.
-            // TODO: Switch to ContentsChanged and re-scan whole inventory. :(
-            private void Inventory_ContentsAdded(MyPhysicalInventoryItem item, VRage.MyFixedPoint arg2)
-            {
-                MyAPIGateway.Utilities.ShowNotification("Called ContentsAdded");
-                MyObjectBuilder_GasContainerObject gasItem = item.Content as MyObjectBuilder_GasContainerObject;
-                if (gasItem != null)
-                {
-                    InventoryTanks.Add(new InventoryTank(item));
-                }
-                MyAPIGateway.Utilities.ShowNotification("There are now " + InventoryTanks.Count + " hydrogen tanks in your inventory.");
-            }
-
-            // Remove a tank from the list when it's removed from inventory.
-            private void Inventory_ContentsRemoved(MyPhysicalInventoryItem item, VRage.MyFixedPoint arg2)
-            {
-                MyAPIGateway.Utilities.ShowNotification("Called ContentsRemoved");
-                MyObjectBuilder_GasContainerObject gasItem = item.Content as MyObjectBuilder_GasContainerObject;
-                if (gasItem != null)
-                {
-                    foreach (InventoryTank tank in InventoryTanks)
-                    {
-                        if (tank.Item.Equals(item))
-                        {
-                            // Found it - remove it and exit loop
-                            InventoryTanks.Remove(tank);
-                            break;
-                        }
-                    }
-                    MyAPIGateway.Utilities.ShowNotification("There are now " + InventoryTanks.Count + " hydrogen tanks in your inventory.");
-                }
-            }
-
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
             // Must monitor character's inventory for Hydrogen tanks
             public MyInventory Inventory;
             // Maintained list of hydrogen tanks in player's inventory
-            public List<InventoryTank> InventoryTanks;
+            public List<InventoryBottle> InventoryBottles;
             // Character's oxygencomponent stores hydrogen, oxygen, etc.
             public MyCharacterOxygenComponent OxygenComponent;
+            // Gas that this character's jetpack uses as fuel
+            public MyDefinitionId FuelId;
+            // This character's fuel capacity
+            public float FuelCapacity;
+            // Bool to detect when jetpack turns on
+            public bool JetPackOn;
+
+            // Small struct for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
+            public class InventoryBottle
+            {
+                public MyPhysicalInventoryItem Item;
+                public float capacity;
+                public float lastKnownFillLevel;
+                public float currentFillLevel { get { return (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel; } }
+                public InventoryBottle(MyPhysicalInventoryItem item)
+                {
+                    Item = item;
+                    lastKnownFillLevel = currentFillLevel;
+                    var gasBottleDefinition = MyDefinitionManager.Static.GetPhysicalItemDefinition(item.Content.GetId()) as MyOxygenContainerDefinition;
+                    capacity = gasBottleDefinition.Capacity;
+                }
+            }
+
+            public SRCharacterInfo(IMyCharacter character)
+            {
+                // Find the fuel this character uses
+                string fuelName = (character.Definition as MyCharacterDefinition).Jetpack.ThrustProperties.FuelConverter.FuelId.SubtypeName;
+                MyDefinitionId.TryParse("MyObjectBuilder_GasProperties/" + fuelName, out FuelId);
+
+                // Look through character's stored gasses to find fuel, and record its capacity.
+                var storedGasses = (character.Definition as MyCharacterDefinition).SuitResourceStorage;
+                foreach(var gas in storedGasses)
+                {
+                    if (gas.Id.SubtypeName == fuelName)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
+                        FuelCapacity = gas.MaxCapacity;
+                        MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
+                        //break;
+                    }
+                    MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
+                }
+
+                Inventory = (MyInventory)character.GetInventory();
+                Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
+                InventoryBottles = new List<InventoryBottle>();
+                OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
+                CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
+                JetPackOn = character.EnabledThrusts;
+
+                MyAPIGateway.Utilities.ShowNotification("Created character info with fuel capacity of " + FuelCapacity, 20000);
+
+                // Initial inventory scan
+                // BUG: It sees oxygen tanks as hydrogen tanks because they have a subtype relationship
+                ScanInventory();
+                //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryTanks.Count + " hydrogen tanks.");
+            }
+
+            // Call before removing a character from the dictionary
+            public void Close()
+            {
+                Inventory.InventoryContentChanged -= Inventory_InventoryContentChanged;
+            }
+
+            // Rescan the inventory if a hydrogen tank is added or removed
+            // Since this doesn't appear to tell me whether it was added or removed, a full rescan is the only option.
+            // TODO: detect added or removed items
+            private void Inventory_InventoryContentChanged(MyInventoryBase arg1, MyPhysicalInventoryItem arg2, VRage.MyFixedPoint arg3)
+            {
+                var itemTypeID = arg2.Content.GetId();
+                MyDefinitionId hydrogenTankID;
+                MyDefinitionId.TryParse("MyObjectBuilder_GasContainerObject/HydrogenBottle", out hydrogenTankID);
+
+                // Ignore anything that's not a fuel bottle
+                if(HoldsFuel(arg2))
+                {
+                    ScanInventory();
+                }
+            }
+
+            private void ScanInventory()
+            {
+                // Reset bottle list
+
+                InventoryBottles.Clear();
+
+                MyInventory inv = Inventory as MyInventory;
+                List<MyPhysicalInventoryItem> items = inv.GetItems();
+                foreach (MyPhysicalInventoryItem item in items)
+                {
+                    // Add gas bottles to list
+                    if(HoldsFuel(item))
+                    {
+                        //if (HoldsHydrogen(item))
+                            MyAPIGateway.Utilities.ShowNotification("Found an item that holds hydrogen in your inventory.");
+                        InventoryBottles.Add(new InventoryBottle(item));
+                    }
+                }
+                MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
+            }
+
+            private bool HoldsFuel(MyPhysicalInventoryItem item)
+            {
+                // OPTIMIZATION to prevent unnecessary calls to GetPhysicalItemDefinition
+                if (item.Content as MyObjectBuilder_GasContainerObject == null)
+                    return false;
+
+                // Check item definition to see what gas it holds
+                var gasBottleDefinition = MyDefinitionManager.Static.GetPhysicalItemDefinition(item.Content.GetId()) as MyOxygenContainerDefinition;
+                
+                if (gasBottleDefinition != null && gasBottleDefinition.StoredGasId.Equals(FuelId))
+                    return true;
+                else
+                    return false;
+            }
         }
 
         // List of characters to apply game rules to
@@ -192,6 +237,7 @@ namespace SurvivalReborn
                 // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                 character.OnMarkForClose += Character_OnMarkForClose;
 
+                MyAPIGateway.Utilities.ShowNotification("Added a character with " + m_characters[character].FuelCapacity + " fuel capacity", 20000);
                 MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
             }
         }
@@ -203,6 +249,7 @@ namespace SurvivalReborn
             IMyCharacter character = obj as IMyCharacter;
             if (character != null)
             {
+                m_characters[character].Close();
                 m_characters.Remove(character);
             }
             MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
@@ -216,7 +263,7 @@ namespace SurvivalReborn
             foreach (KeyValuePair<IMyCharacter, SRCharacterInfo> pair in m_characters)
             {
                 IMyCharacter character = pair.Key;
-                SRCharacterInfo info = pair.Value;
+                SRCharacterInfo characterInfo = pair.Value;
                 // Remove character from list if it's dead or its parent is not null (entered a seat or something)
                 if(character.Parent != null || character.IsDead)
                 {
@@ -227,25 +274,51 @@ namespace SurvivalReborn
                     continue;
                 }
 
-                // Naive proof of concept. Still needs more optimization:
-                // TODO: only check tanks if the fuel level's actually low enough to try to refuel.
-                // TODO OPTIMIZATION: Once the first refuel attempt is made, schedule checks every 5000 (or is it 5001?) milliseconds when the refueling actually takes place.
-                if(character.EnabledThrusts && info.InventoryTanks.Count != 0)
+                // Check for jetpack changing state
+                if(character.EnabledThrusts != characterInfo.JetPackOn)
+                {
+                    // When the jetpack is switched on, update the last known value of bottles to prevent refueling
+                    if (character.EnabledThrusts)
+                        foreach(var bottle in characterInfo.InventoryBottles)
+                            bottle.lastKnownFillLevel = bottle.currentFillLevel;
+
+                    characterInfo.JetPackOn = character.EnabledThrusts;
+                }
+
+                // Prevent disallowed refueling.
+                // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
+                if(character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0
+                    && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.LOW_OXYGEN_RATIO)
                 {
                     // Check for illegal refills
+                    foreach (SRCharacterInfo.InventoryBottle bottle in characterInfo.InventoryBottles)
+                    {
+                        //MyLog.Default.WriteLine("Tank current capacity: " + bottle.currentFillLevel + ", last known capacity: " + bottle.lastKnownFillLevel);
+                        var delta = bottle.currentFillLevel - bottle.lastKnownFillLevel;
+                        if(delta != 0f)
+                        {
+                            // Calculate correct amount to remove
+                            float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
+                            MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
 
-                    // Undo illegal refills
+                            // Set the fuel level back to what it should be.
+                            float fixedGasLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) - gasToRemove;
+                            characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, fixedGasLevel);
 
-                    // Schedule next check for illegal refills
+                            // Put the gas back in the bottle
+                            var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
+                            badBottle.GasLevel = bottle.lastKnownFillLevel;
+                        }
+                    }
                 }
 
                 // Skip collision damage for this character until it moves. This ensures phsyics have been fully loaded.
-                // Bug? - This can affect characters that have just spawned from a seat. Small movements usually trip it, though.
-                if (!info.CollisionDamageEnabled)
+                // This can affect characters that have just spawned from a seat, but characters usually get nudged a little bit, which will trip it.
+                if (!characterInfo.CollisionDamageEnabled)
                 {
                     if (character.Physics.LinearAcceleration.Length() > 0)
                     {
-                        info.CollisionDamageEnabled = true;
+                        characterInfo.CollisionDamageEnabled = true;
                     }
                     // Enable collision damage on the next tick.
                     continue;
@@ -264,9 +337,10 @@ namespace SurvivalReborn
                 }
             }
 
-            // Remove characters from list if needed
+            // Remove characters from dictionary if needed
             foreach(var character in m_toRemove)
             {
+                m_characters[character].Close();
                 character.OnMarkForClose -= Character_OnMarkForClose;
                 m_characters.Remove(character);
             }
