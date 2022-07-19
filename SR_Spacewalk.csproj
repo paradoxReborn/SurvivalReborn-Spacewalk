@@ -105,11 +105,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Data\Scripts\Assembly\SRCharacterMovementFix.cs" />
+    <Compile Include="Data\Scripts\Assembly\SRSpacewalk.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\SR_Characters.sbc" />
+    <None Include="Data\SR_GasProperties.sbc" />
     <None Include="Data\SR_Tools.sbc" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
