@@ -100,7 +100,7 @@ namespace SurvivalReborn
                 // Initial inventory scan
                 // BUG: It sees oxygen tanks as hydrogen tanks because they have a subtype relationship
                 ScanInventory();
-                MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
+                //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
             // Call before removing a character from the dictionary
@@ -295,7 +295,7 @@ namespace SurvivalReborn
                 // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
                 if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
                 {
-                    MyAPIGateway.Utilities.ShowNotification("Checking for illegal refills");
+                    //MyAPIGateway.Utilities.ShowNotification("Checking for illegal refills");
                     // Check for illegal refills
                     foreach (SRCharacterInfo.InventoryBottle bottle in characterInfo.InventoryBottles)
                     {
