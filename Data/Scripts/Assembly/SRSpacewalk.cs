@@ -49,6 +49,8 @@ namespace SurvivalReborn
             public float FuelCapacity;
             // Bool to detect when jetpack turns on
             public bool JetPackOn;
+            // Control variable to ensure illegal refills get caught
+            public bool GasLow;
 
             // Small struct for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
             public class InventoryBottle
@@ -98,7 +100,7 @@ namespace SurvivalReborn
                 // Initial inventory scan
                 // BUG: It sees oxygen tanks as hydrogen tanks because they have a subtype relationship
                 ScanInventory();
-                //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryTanks.Count + " hydrogen tanks.");
+                MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
             // Call before removing a character from the dictionary
@@ -285,17 +287,21 @@ namespace SurvivalReborn
                     characterInfo.JetPackOn = character.EnabledThrusts;
                 }
 
+                // Check for gas falling below threshold and begin checking for illegal refuels immediately.
+                if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                    characterInfo.GasLow = true;
+
                 // Prevent disallowed refueling.
                 // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
-                if(character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0
-                    && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.LOW_OXYGEN_RATIO)
+                if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
                 {
+                    MyAPIGateway.Utilities.ShowNotification("Checking for illegal refills");
                     // Check for illegal refills
                     foreach (SRCharacterInfo.InventoryBottle bottle in characterInfo.InventoryBottles)
                     {
                         //MyLog.Default.WriteLine("Tank current capacity: " + bottle.currentFillLevel + ", last known capacity: " + bottle.lastKnownFillLevel);
                         var delta = bottle.currentFillLevel - bottle.lastKnownFillLevel;
-                        if(delta != 0f)
+                        if (delta != 0f)
                         {
                             // Calculate correct amount to remove
                             float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
@@ -311,6 +317,10 @@ namespace SurvivalReborn
                         }
                     }
                 }
+
+                // Delayed check for gas fill level. If this isn't delayed by one tick, the illegal refill will prevent the check that's meant to find it.
+                if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                    characterInfo.GasLow = false;
 
                 // Skip collision damage for this character until it moves. This ensures phsyics have been fully loaded.
                 // This can affect characters that have just spawned from a seat, but characters usually get nudged a little bit, which will trip it.
