@@ -94,7 +94,7 @@ namespace SurvivalReborn
 
                 // Look through character's stored gasses to find fuel, and record its capacity.
                 var storedGasses = (character.Definition as MyCharacterDefinition).SuitResourceStorage;
-                foreach(var gas in storedGasses)
+                foreach (var gas in storedGasses)
                 {
                     if (gas.Id.SubtypeName == fuelName)
                     {
@@ -138,7 +138,7 @@ namespace SurvivalReborn
             private void Inventory_InventoryContentChanged(MyInventoryBase arg1, MyPhysicalInventoryItem arg2, VRage.MyFixedPoint arg3)
             {
                 // Ignore anything that's not a fuel bottle
-                if(HoldsFuel(arg2))
+                if (HoldsFuel(arg2))
                     ScanInventory();
             }
 
@@ -151,7 +151,7 @@ namespace SurvivalReborn
                 foreach (MyPhysicalInventoryItem item in items)
                 {
                     // Add gas bottles to list
-                    if(HoldsFuel(item))
+                    if (HoldsFuel(item))
                         InventoryBottles.Add(new InventoryBottle(item));
                 }
                 //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
@@ -165,7 +165,7 @@ namespace SurvivalReborn
 
                 // Check item definition to see what gas it holds
                 var gasBottleDefinition = MyDefinitionManager.Static.GetPhysicalItemDefinition(item.Content.GetId()) as MyOxygenContainerDefinition;
-                
+
                 if (gasBottleDefinition != null && gasBottleDefinition.StoredGasId.Equals(FuelId))
                     return true;
                 else
@@ -174,7 +174,7 @@ namespace SurvivalReborn
         }
 
         // List of characters to apply game rules to
-        Dictionary<IMyCharacter,SRCharacterInfo> m_characters = new Dictionary<IMyCharacter,SRCharacterInfo>();
+        Dictionary<IMyCharacter, SRCharacterInfo> m_characters = new Dictionary<IMyCharacter, SRCharacterInfo>();
         // List of characters to remove from dictionary this tick
         List<IMyCharacter> m_toRemove = new List<IMyCharacter>();
 
@@ -246,7 +246,7 @@ namespace SurvivalReborn
             if (character != null)
             {
                 // Add to dictionary
-                m_characters.Add(character,new SRCharacterInfo(character));
+                m_characters.Add(character, new SRCharacterInfo(character));
 
                 // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                 character.OnMarkForClose += Character_OnMarkForClose;
@@ -280,7 +280,7 @@ namespace SurvivalReborn
                 SRCharacterInfo characterInfo = pair.Value;
 
                 // Remove character from list if it's dead or its parent is not null (entered a seat or something)
-                if(character.Parent != null || character.IsDead)
+                if (character.Parent != null || character.IsDead)
                 {
                     // Can't remove while iterating or enumeration might fail, so do it afterward
                     m_toRemove.Add(character);
@@ -292,11 +292,11 @@ namespace SurvivalReborn
                 // JETPACK REFUELING RULE
 
                 // Check for jetpack changing state
-                if(character.EnabledThrusts != characterInfo.JetPackOn)
+                if (character.EnabledThrusts != characterInfo.JetPackOn)
                 {
                     // When the jetpack is switched on, update the last known value of bottles to prevent refueling
                     if (character.EnabledThrusts)
-                        foreach(var bottle in characterInfo.InventoryBottles)
+                        foreach (var bottle in characterInfo.InventoryBottles)
                             bottle.lastKnownFillLevel = bottle.currentFillLevel;
 
                     characterInfo.JetPackOn = character.EnabledThrusts;
@@ -361,7 +361,7 @@ namespace SurvivalReborn
                 else if (accelSquared > DAMAGE_THRESHOLD_SQ)
                 //    && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared) // Running with safety off for debug reasons
                 {
-                    if(character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
+                    if (character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
                     {
                         MyAPIGateway.Utilities.ShowNotification("Linear acceleration calculations appear to have glitched out.", 30000, "Red");
                         MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
@@ -373,7 +373,7 @@ namespace SurvivalReborn
                     MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
                 }
                 // Update lastLinearVelocity each tick
-                    characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
+                characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
 
                 /*
                 // If collision damage is tripped, perform sanity check and possibly damage.
@@ -421,7 +421,7 @@ namespace SurvivalReborn
             }
 
             // Remove characters from dictionary if needed
-            foreach(var character in m_toRemove)
+            foreach (var character in m_toRemove)
             {
                 m_characters[character].Close();
                 character.OnMarkForClose -= Character_OnMarkForClose;
