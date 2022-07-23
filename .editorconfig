@@ -1,0 +1,7 @@
+﻿[*.cs]
+
+# ProhibitedMemberRuleM: Prohibited Type Or Member(Mod script)
+dotnet_diagnostic.ProhibitedMemberRuleM.severity = error
+
+# ProhibitedMemberRuleI: Prohibited Type Or Member(In-game script)
+dotnet_diagnostic.ProhibitedMemberRuleI.severity = suggestion

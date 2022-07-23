@@ -9,9 +9,13 @@ using Sandbox.ModAPI;
 using Sandbox.Common.ObjectBuilders.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities.Character.Components;
+using Sandbox.Game.Entities.Character;
+using Sandbox.Game.Entities.Cube;
 using Sandbox.Game.Entities;
 using Sandbox.Definitions;
+using Sandbox.Engine.Physics;
 using VRage.Utils;
+using VRageMath;
 
 namespace SurvivalReborn
 {
@@ -27,6 +31,9 @@ namespace SurvivalReborn
     /// - Smooth out player movement a bit
     /// Defaults are restored on world close in case the mod is removed. Otherwise the world would keep the modded global values.
     /// 
+    /// TODO/OPTIMIZATION: Change collision damage checks each tick to compare acceleration LengthSquared to the square of the threshold.
+    ///     When the threshold is passed, only then should I call .Length() which includes a square root.
+    /// 
     /// Jetpack anti-refueling works regardless of the gas a specific character uses for fuel.
     /// </summary>
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation)]
@@ -35,8 +42,19 @@ namespace SurvivalReborn
         // Data structure for keeping track of info about players
         private class SRCharacterInfo
         {
+            // VALUES FOR COLLISION DAMAGE RULE
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
+            // Force of a possible collision in m/s/s if one has occurred, otherwise == 0f
+            //public float PossibleCollision;
+            // Character's max movement speed
+            public float MaxSpeed;
+            // Max speed squared for optimized checks
+            public float MaxSpeedSquared;
+            // Linear velocity from the tick before collision damage was tripped
+            public Vector3 lastLinearVelocity;
+
+            // VALUES FOR JETPACK REFUELING RULE
             // Must monitor character's inventory for Hydrogen tanks
             public MyInventory Inventory;
             // Maintained list of hydrogen tanks in player's inventory
@@ -52,7 +70,7 @@ namespace SurvivalReborn
             // Control variable to ensure illegal refills get caught
             public bool GasLow;
 
-            // Small struct for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
+            // Data structure for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
             public class InventoryBottle
             {
                 public MyPhysicalInventoryItem Item;
@@ -95,10 +113,16 @@ namespace SurvivalReborn
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
 
+                // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
+                var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
+                var maxDudeSpeed = Math.Max((character.Definition as MyCharacterDefinition).MaxSprintSpeed,
+                    Math.Max((character.Definition as MyCharacterDefinition).MaxRunSpeed, (character.Definition as MyCharacterDefinition).MaxBackrunSpeed));
+                MaxSpeed = maxShipSpeed + maxDudeSpeed;
+                MaxSpeedSquared = MaxSpeed * MaxSpeed;
+
                 //MyAPIGateway.Utilities.ShowNotification("Created character info with fuel capacity of " + FuelCapacity, 20000);
 
                 // Initial inventory scan
-                // BUG: It sees oxygen tanks as hydrogen tanks because they have a subtype relationship
                 ScanInventory();
                 //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
@@ -110,38 +134,25 @@ namespace SurvivalReborn
             }
 
             // Rescan the inventory if a hydrogen tank is added or removed
-            // Since this doesn't appear to tell me whether it was added or removed, a full rescan is the only option.
-            // TODO: detect added or removed items
+            // Since this doesn't appear to tell me whether it was added or removed, a full rescan is the only option. It's pretty fast anyway.
             private void Inventory_InventoryContentChanged(MyInventoryBase arg1, MyPhysicalInventoryItem arg2, VRage.MyFixedPoint arg3)
             {
-                var itemTypeID = arg2.Content.GetId();
-                MyDefinitionId hydrogenTankID;
-                MyDefinitionId.TryParse("MyObjectBuilder_GasContainerObject/HydrogenBottle", out hydrogenTankID);
-
                 // Ignore anything that's not a fuel bottle
                 if(HoldsFuel(arg2))
-                {
                     ScanInventory();
-                }
             }
 
             private void ScanInventory()
             {
                 // Reset bottle list
-
                 InventoryBottles.Clear();
 
-                MyInventory inv = Inventory as MyInventory;
-                List<MyPhysicalInventoryItem> items = inv.GetItems();
+                List<MyPhysicalInventoryItem> items = Inventory.GetItems();
                 foreach (MyPhysicalInventoryItem item in items)
                 {
                     // Add gas bottles to list
                     if(HoldsFuel(item))
-                    {
-                        //if (HoldsHydrogen(item))
-                            //MyAPIGateway.Utilities.ShowNotification("Found an item that holds hydrogen in your inventory.");
                         InventoryBottles.Add(new InventoryBottle(item));
-                    }
                 }
                 //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
@@ -169,6 +180,7 @@ namespace SurvivalReborn
 
         // Game rules for fall damage - settings are in m/s/s
         const float DAMAGE_THRESHOLD = 750f;
+        const float DAMAGE_THRESHOLD_SQ = 562500f;
         const float IGNORE_ABOVE = 1500f; // Should be roughly where vanilla damage starts
         const float DAMAGE_PER_MSS = 0.03f;
 
@@ -266,6 +278,7 @@ namespace SurvivalReborn
             {
                 IMyCharacter character = pair.Key;
                 SRCharacterInfo characterInfo = pair.Value;
+
                 // Remove character from list if it's dead or its parent is not null (entered a seat or something)
                 if(character.Parent != null || character.IsDead)
                 {
@@ -276,6 +289,8 @@ namespace SurvivalReborn
                     continue;
                 }
 
+                // JETPACK REFUELING RULE
+
                 // Check for jetpack changing state
                 if(character.EnabledThrusts != characterInfo.JetPackOn)
                 {
@@ -285,6 +300,7 @@ namespace SurvivalReborn
                             bottle.lastKnownFillLevel = bottle.currentFillLevel;
 
                     characterInfo.JetPackOn = character.EnabledThrusts;
+                    var vect = character.Physics.LinearVelocity;
                 }
 
                 // Check for gas falling below threshold and begin checking for illegal refuels immediately.
@@ -322,29 +338,86 @@ namespace SurvivalReborn
                 if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
                     characterInfo.GasLow = false;
 
-                // Skip collision damage for this character until it moves. This ensures phsyics have been fully loaded.
-                // This can affect characters that have just spawned from a seat, but characters usually get nudged a little bit, which will trip it.
+                // COLLISION DAMAGE RULE
+
+                /// Skip collision damage for this character until it moves. This "hamfisted but genius" solution catches several edge cases and prevents false positives:
+                /// 1. When leaving a seat
+                /// 2. When respawning
+                /// 3. On world load while moving and not in a seat
+                /// The character receives a microscopic nudge to trip this as soon as physics are ready.
+                var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
+
                 if (!characterInfo.CollisionDamageEnabled)
                 {
-                    if (character.Physics.LinearAcceleration.Length() > 0)
+                    character.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_IMPULSE_AND_WORLD_ANGULAR_IMPULSE, 0.0001f * Vector3.Down, null, null);
+                    if (character.Physics.LinearVelocity.LengthSquared() > 0)
                     {
                         characterInfo.CollisionDamageEnabled = true;
+                        characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
+                        MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
                     }
-                    // Enable collision damage on the next tick.
-                    continue;
                 }
-                // If enabled, check for and do collision damage
-                else
+                // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
+                else if (accelSquared > DAMAGE_THRESHOLD_SQ)
+                //    && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared) // Running with safety off for debug reasons
                 {
-                    float accel = character.Physics.LinearAcceleration.Length();
-                    if (accel > DAMAGE_THRESHOLD)
+                    if(character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
                     {
-                        float damage = Math.Min(IGNORE_ABOVE * DAMAGE_PER_MSS, DAMAGE_PER_MSS * (accel - DAMAGE_THRESHOLD));
+                        MyAPIGateway.Utilities.ShowNotification("Linear acceleration calculations appear to have glitched out.", 30000, "Red");
+                        MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
+                    }
+
+                    // We definitely crashed into something. If you look reeeeeeally closely, you might see vanilla damage and this damage happen 1 tick apart.
+                    float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
+                    character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
+                    MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
+                }
+                // Update lastLinearVelocity each tick
+                    characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
+
+                /*
+                // If collision damage is tripped, perform sanity check and possibly damage.
+                else if (characterInfo.PossibleCollision != 0f)
+                {
+                    // At this point, we are in the tick FOLLOWING the spike, and lastLinearVelocity is from BEFORE the spike.
+                    // Now we compare LinearVelocity before and after the acceleration spike to see if the character snapped back to its original velocity in a teleport
+
+                    // Acceleration squared over the past two phsyics ticks in m/s/s assuming 60 tps
+                    var twoTickAccelerationSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
+                    if (twoTickAccelerationSquared > DAMAGE_THRESHOLD_SQ)
+                    {
+                        // We definitely crashed into something. If you look reeeeeeally closely, you might see vanilla damage and this damage happen 1 tick apart.
+                        var damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, characterInfo.PossibleCollision) - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                        //MyLog.Default.WriteLine("SurvivalReborn: Did collision damage for " + accel + " m/s/s");
-                        //MyAPIGateway.Utilities.ShowNotification("DAMAGE! " + accel + " m/s/s", 10000, "Red");
+                        MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
+                    }
+                    // RESET possible collision
+                    characterInfo.PossibleCollision = 0f;
+                }
+                // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
+                else if (character.Physics.LinearAcceleration.LengthSquared() > DAMAGE_THRESHOLD_SQ && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
+                {
+                    // Multiply by 60 (ticks per second) to get m/s/s
+                    characterInfo.PossibleCollision = character.Physics.LinearAcceleration.Length();
+                    MyAPIGateway.Utilities.ShowNotification("Possible collision at " + characterInfo.PossibleCollision);
+
+                    // Exploratory debug
+                    var twoTickAccelerationSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
+                    if (twoTickAccelerationSquared > DAMAGE_THRESHOLD_SQ)
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("This tick really did have insane acceleration");
+                    }
+                    else
+                    {
+                        MyAPIGateway.Utilities.ShowNotification("Tracking Linear acceleration would not have detected this.");
                     }
                 }
+                // If nothing's going on, just update lastLinearVelocity
+                else if (characterInfo.CollisionDamageEnabled)
+                {
+                    characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
+                }
+                */
             }
 
             // Remove characters from dictionary if needed
