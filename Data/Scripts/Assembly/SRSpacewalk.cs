@@ -222,6 +222,8 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Debug v3 no sanity check");
+
         }
 
         protected override void UnloadData()
@@ -345,35 +347,46 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this as soon as physics are ready.
-                var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
-
-                if (!characterInfo.CollisionDamageEnabled)
+                if (MyAPIGateway.Session.IsServer)
                 {
-                    character.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_IMPULSE_AND_WORLD_ANGULAR_IMPULSE, 0.0001f * Vector3.Down, null, null);
-                    if (character.Physics.LinearVelocity.LengthSquared() > 0)
-                    {
-                        characterInfo.CollisionDamageEnabled = true;
-                        characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
-                        MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
-                    }
-                }
-                // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
-                else if (accelSquared > DAMAGE_THRESHOLD_SQ)
-                //    && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared) // Running with safety off for debug reasons
-                {
-                    if (character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
-                    {
-                        MyAPIGateway.Utilities.ShowNotification("Linear acceleration calculations appear to have glitched out.", 30000, "Red");
-                        MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
-                    }
+                    //MyLog.Default.WriteLineAndConsole("ALOHA LOG SPAM!S");
+                    var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
-                    // We definitely crashed into something. If you look reeeeeeally closely, you might see vanilla damage and this damage happen 1 tick apart.
-                    float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
-                    character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                    MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
+                    if (!characterInfo.CollisionDamageEnabled)
+                    {
+                        character.Physics.AddForce(MyPhysicsForceType.APPLY_WORLD_IMPULSE_AND_WORLD_ANGULAR_IMPULSE, 0.0001f * Vector3.Down, null, null);
+                        if (character.Physics.LinearVelocity.LengthSquared() > 0)
+                        {
+                            characterInfo.CollisionDamageEnabled = true;
+                            characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
+                            MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
+                        }
+                    }
+                    // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
+                    else if (accelSquared > DAMAGE_THRESHOLD_SQ)
+                        //&& character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared
+                        //&& characterInfo.lastLinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared
+                        //&& character.Physics.LinearVelocity.LengthSquared() != 0f
+                    {
+                        if (character.Physics.LinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared || characterInfo.lastLinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared)
+                        {
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                        }
+                        if(character.Physics.LinearVelocity.LengthSquared() == 0f)
+                        {
+                            MyLog.Default.WriteLineAndConsole("Character's speed was set to zero and caused damage!");
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                        }
+
+                        // We definitely crashed into something.
+                        float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
+                        character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
+                        MyLog.Default.WriteLineAndConsole("Took " + damage + " collision damage.");
+                    }
+                    // Update lastLinearVelocity each tick
+                    characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
-                // Update lastLinearVelocity each tick
-                characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
 
                 /*
                 // If collision damage is tripped, perform sanity check and possibly damage.
