@@ -222,7 +222,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Debug v3 no sanity check");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Beta 0.1 (no sanity check)");
 
         }
 
@@ -359,7 +359,7 @@ namespace SurvivalReborn
                         {
                             characterInfo.CollisionDamageEnabled = true;
                             characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
-                            MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
+                            //MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
                         }
                     }
                     // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
