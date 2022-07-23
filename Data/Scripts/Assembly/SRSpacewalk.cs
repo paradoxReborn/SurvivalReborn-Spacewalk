@@ -354,23 +354,23 @@ namespace SurvivalReborn
                     {
                         characterInfo.CollisionDamageEnabled = true;
                         characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
-                        MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
+                        //MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
                     }
                 }
                 // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
-                else if (accelSquared > DAMAGE_THRESHOLD_SQ)
-                //    && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared) // Running with safety off for debug reasons
+                else if (accelSquared > DAMAGE_THRESHOLD_SQ
+                    && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
                 {
                     if (character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
                     {
-                        MyAPIGateway.Utilities.ShowNotification("Linear acceleration calculations appear to have glitched out.", 30000, "Red");
+                        //MyAPIGateway.Utilities.ShowNotification("Linear acceleration calculations appear to have glitched out.", 30000, "Red");
                         MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
                     }
 
                     // We definitely crashed into something. If you look reeeeeeally closely, you might see vanilla damage and this damage happen 1 tick apart.
                     float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
                     character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                    MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
+                    //MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
                 }
                 // Update lastLinearVelocity each tick
                 characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
