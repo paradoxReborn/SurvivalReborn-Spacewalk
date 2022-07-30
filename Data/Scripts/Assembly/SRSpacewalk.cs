@@ -14,7 +14,7 @@
 ///    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ///
 ///    In accordance with section 7 of the GNU General Public License,
-///    the license is supplementd with the following additional terms:
+///    the license is supplemented with the following additional terms:
 ///    1. You may not claim affiliation with Survival Reborn or its author.
 ///    2. You must not represent your work as being part of the Survival Reborn series 
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
@@ -30,11 +30,8 @@ using Sandbox.ModAPI;
 using Sandbox.Common.ObjectBuilders.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities.Character.Components;
-//using Sandbox.Game.Entities.Character;
-//using Sandbox.Game.Entities.Cube;
 using Sandbox.Game.Entities;
 using Sandbox.Definitions;
-//using Sandbox.Engine.Physics;
 using VRage.Utils;
 using VRageMath;
 
@@ -52,22 +49,20 @@ namespace SurvivalReborn
     /// - Smooth out player movement a bit
     /// Defaults are restored on world close in case the mod is removed. Otherwise the world would keep the modded global values.
     /// 
-    /// KNOWN ISSUES:
-    /// - The jetpack fuel level visually desyncs in multiplayer when the game tries (in vain) to refuel it.
-    /// 
     /// Jetpack anti-refueling works regardless of the gas a specific character uses for fuel.
+    /// It should be compatible with custom jetpack fuel gasses such as hydrogen peroxide or methane.
     /// </summary>
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation)]
     class SRSpacewalk : MySessionComponentBase
     {
-        // Data structure for keeping track of info about players
+        /// <summary>
+        /// Data for tracking information about characters in order to enforce SR:Spacewalk game rules
+        /// </summary>
         private class SRCharacterInfo
         {
-            // VALUES FOR COLLISION DAMAGE RULE
+            /// VALUES FOR COLLISION DAMAGE RULE
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
-            // Force of a possible collision in m/s/s if one has occurred, otherwise == 0f
-            //public float PossibleCollision;
             // Character's max movement speed
             public float MaxSpeed;
             // Max speed squared for optimized checks
@@ -75,11 +70,11 @@ namespace SurvivalReborn
             // Linear velocity from the tick before collision damage was tripped
             public Vector3 lastLinearVelocity;
 
-            // VALUES FOR JETPACK REFUELING RULE
+            /// VALUES FOR JETPACK REFUELING RULE
             // Must monitor character's inventory for Hydrogen tanks
             public MyInventory Inventory;
             // Maintained list of hydrogen tanks in player's inventory
-            public List<InventoryBottle> InventoryBottles;
+            public List<SRInventoryBottle> InventoryBottles;
             // Character's oxygencomponent stores hydrogen, oxygen, etc.
             public MyCharacterOxygenComponent OxygenComponent;
             // Gas that this character's jetpack uses as fuel
@@ -91,14 +86,16 @@ namespace SurvivalReborn
             // Control variable to ensure illegal refills get caught
             public bool GasLow;
 
-            // Data structure for keeping track of gastanks in inventories and their last known values for no-refuel enforcement
-            public class InventoryBottle
+            /// <summary>
+            /// A data structure for tracking gas bottles in character inventories to enforce the jetpack refueling rule
+            /// </summary>
+            public class SRInventoryBottle
             {
                 public MyPhysicalInventoryItem Item;
                 public float capacity;
                 public float lastKnownFillLevel;
                 public float currentFillLevel { get { return (Item.Content as MyObjectBuilder_GasContainerObject).GasLevel; } }
-                public InventoryBottle(MyPhysicalInventoryItem item)
+                public SRInventoryBottle(MyPhysicalInventoryItem item)
                 {
                     Item = item;
                     lastKnownFillLevel = currentFillLevel;
@@ -129,7 +126,7 @@ namespace SurvivalReborn
 
                 Inventory = (MyInventory)character.GetInventory();
                 Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
-                InventoryBottles = new List<InventoryBottle>();
+                InventoryBottles = new List<SRInventoryBottle>();
                 OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
@@ -148,14 +145,17 @@ namespace SurvivalReborn
                 //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
-            // Call before removing a character from the dictionary
+            /// <summary>
+            /// Call Close() on this character's SRCharacterInfo before removing this it from m_characters
+            /// </summary>
             public void Close()
             {
                 Inventory.InventoryContentChanged -= Inventory_InventoryContentChanged;
             }
 
-            // Rescan the inventory if a hydrogen tank is added or removed
-            // Since this doesn't appear to tell me whether it was added or removed, a full rescan is the only option. It's pretty fast anyway.
+            /// <summary>
+            /// Refresh this character's list of inventory bottles when a compatible fuel bottle is added or removed.
+            /// </summary>
             private void Inventory_InventoryContentChanged(MyInventoryBase arg1, MyPhysicalInventoryItem arg2, VRage.MyFixedPoint arg3)
             {
                 // Ignore anything that's not a fuel bottle
@@ -163,6 +163,9 @@ namespace SurvivalReborn
                     ScanInventory();
             }
 
+            /// <summary>
+            /// Scan this character's inventory for bottles that hold fuel for its jetpack.
+            /// </summary>
             private void ScanInventory()
             {
                 // Reset bottle list
@@ -173,11 +176,14 @@ namespace SurvivalReborn
                 {
                     // Add gas bottles to list
                     if (HoldsFuel(item))
-                        InventoryBottles.Add(new InventoryBottle(item));
+                        InventoryBottles.Add(new SRInventoryBottle(item));
                 }
                 //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
+            /// <summary>
+            /// Return true if this item is a gas container that holds fuel for this character's jetpack.
+            /// </summary>
             private bool HoldsFuel(MyPhysicalInventoryItem item)
             {
                 // OPTIMIZATION to prevent unnecessary calls to GetPhysicalItemDefinition
@@ -196,7 +202,7 @@ namespace SurvivalReborn
 
         // List of characters to apply game rules to
         Dictionary<IMyCharacter, SRCharacterInfo> m_characters = new Dictionary<IMyCharacter, SRCharacterInfo>();
-        // List of characters to remove from dictionary this tick
+        // List of characters to remove from m_characters this tick
         List<IMyCharacter> m_toRemove = new List<IMyCharacter>();
 
         // Game rules for fall damage - settings are in m/s/s
@@ -205,7 +211,7 @@ namespace SurvivalReborn
         const float IGNORE_ABOVE = 1500f; // Should be roughly where vanilla damage starts
         const float DAMAGE_PER_MSS = 0.03f;
 
-        // Defaults to restore
+        // Defaults to restore on world close
         private float m_defaultCharacterGravity;
         private float m_defaultWalkAcceleration;
         private float m_defaultWalkDeceleration;
@@ -216,6 +222,9 @@ namespace SurvivalReborn
         {
             // Hook entity add for character list
             MyEntities.OnEntityAdd += MyEntities_OnEntityAdd;
+
+            // Register desync fix
+            MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(5064, ReceivedCorrection);
 
             // Fix character movement
             {
@@ -243,7 +252,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Beta 0.1 (no sanity check)");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Beta 0.4. Some sanity checks are disabled for testing purposes to catch rare bugs.");
 
         }
 
@@ -252,7 +261,10 @@ namespace SurvivalReborn
             // Unhook events
             MyEntities.OnEntityAdd -= MyEntities_OnEntityAdd;
 
-            // Restore all defaults
+            // Unregister desync fix
+            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(5064, ReceivedCorrection);
+
+            // Restore all defaults - Don't leave a mess if the mod is removed later.
             MyPerGameSettings.CharacterGravityMultiplier = m_defaultCharacterGravity;
             MyPerGameSettings.CharacterMovement.WalkAcceleration = m_defaultWalkAcceleration;
             MyPerGameSettings.CharacterMovement.WalkDecceleration = m_defaultWalkDeceleration;
@@ -263,6 +275,9 @@ namespace SurvivalReborn
             MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings returned to defaults.");
         }
 
+        /// <summary>
+        /// Add each character spawned in the world to m_characters.
+        /// </summary>
         private void MyEntities_OnEntityAdd(VRage.Game.Entity.MyEntity obj)
         {
             IMyCharacter character = obj as IMyCharacter;
@@ -274,12 +289,14 @@ namespace SurvivalReborn
                 // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                 character.OnMarkForClose += Character_OnMarkForClose;
 
-                //MyAPIGateway.Utilities.ShowNotification("Added a character with " + m_characters[character].FuelCapacity + " fuel capacity", 20000);
-                //MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
+                MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_characters.Count + " characters listed.");
             }
         }
 
-        // Remove character from list when it's removed from the world.
+        /// <summary>
+        /// Remove a character from m_characters when marked for close.
+        /// </summary>
+        /// <param name="obj"></param>
         private void Character_OnMarkForClose(IMyEntity obj)
         {
             // Ensure this is a character. Ignore otherwise.
@@ -288,9 +305,52 @@ namespace SurvivalReborn
             {
                 m_characters[character].Close();
                 m_characters.Remove(character);
+                character.OnMarkForClose -= Character_OnMarkForClose;
             }
-            //MyAPIGateway.Utilities.ShowNotification("There are now " + m_characters.Count + " characters listed.");
+            MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_characters.Count + " characters listed.");
         }
+
+        /// <summary>
+        /// In multiplayer, the client needs to receive a sync packet to prevent a desync when the server tries and fails to refuel a jetpack.
+        /// This happens because the jetpack refuel raises a multiplayer event, but changing gas levels with the mod API does not.
+        /// </summary>
+        /// <param name="handlerId">Packet handler ID for SR:Spacewalk</param>
+        /// <param name="raw">The payload, a serialized SRFuelSyncPacket</param>
+        /// <param name="steamId">SteamID of the sender</param>
+        /// <param name="fromServer">True if packet is from the server</param>
+        private void ReceivedCorrection(ushort handlerId, byte[] raw, ulong steamId, bool fromServer)
+        {
+            // Ignore any packets that aren't from the server.
+            if (!fromServer)
+                return;
+            // Ignore packet if the server somehow sends it to itself
+            if (MyAPIGateway.Session.IsServer)
+                return;
+
+            MyLog.Default.WriteLine("SurvivalReborn: Received a fuel level sync packet.");
+            try
+            {
+                SRFuelSyncPacket correction = MyAPIGateway.Utilities.SerializeFromBinary<SRFuelSyncPacket>(raw);
+
+                // Ensure character isn't null as it might not be loaded on all clients.
+                IMyCharacter character = MyEntities.GetEntityById(correction.EntityId) as IMyCharacter;
+                if(character != null)
+                {
+                    // FIX THE FUEL LEVEL
+                    var tanks = character.Components.Get<MyCharacterOxygenComponent>();
+                    var trueFuelLvl = tanks.GetGasFillLevel(m_characters[character].FuelId) - correction.FuelAmount;
+                    tanks.UpdateStoredGasLevel(ref m_characters[character].FuelId, trueFuelLvl);
+                }
+            }
+            catch (Exception ex)
+            {
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.Error("Survival Reborn: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.WriteLineAndConsole(ex.Message);
+                MyLog.Default.WriteLineAndConsole(ex.StackTrace);
+            }
+        }
+
 
         public override void UpdateBeforeSimulation()
         {
@@ -302,12 +362,11 @@ namespace SurvivalReborn
                 IMyCharacter character = pair.Key;
                 SRCharacterInfo characterInfo = pair.Value;
 
-                // Remove character from list if it's dead or its parent is not null (entered a seat or something)
+                // Remove character from list if it's dead or its parent is not null (entered a seat, etc.)
                 if (character.Parent != null || character.IsDead)
                 {
                     // Can't remove while iterating or enumeration might fail, so do it afterward
                     m_toRemove.Add(character);
-                    //MyAPIGateway.Utilities.ShowNotification("A character will be removed. There will be " + (m_characters.Count - 1) + " remaining.");
                     // Don't do anything else to this character. We are done with it.
                     continue;
                 }
@@ -324,6 +383,7 @@ namespace SurvivalReborn
 
                     characterInfo.JetPackOn = character.EnabledThrusts;
                     var vect = character.Physics.LinearVelocity;
+                    MyLog.Default.WriteLine("SurvivalReborn: Jetpack activated. Rescanning inventory of " + character.DisplayName);
                 }
 
                 // Check for gas falling below threshold and begin checking for illegal refuels immediately.
@@ -334,11 +394,9 @@ namespace SurvivalReborn
                 // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
                 if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
                 {
-                    //MyAPIGateway.Utilities.ShowNotification("Checking for illegal refills");
                     // Check for illegal refills
-                    foreach (SRCharacterInfo.InventoryBottle bottle in characterInfo.InventoryBottles)
+                    foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
-                        //MyLog.Default.WriteLine("Tank current capacity: " + bottle.currentFillLevel + ", last known capacity: " + bottle.lastKnownFillLevel);
                         var delta = bottle.currentFillLevel - bottle.lastKnownFillLevel;
                         if (delta != 0f)
                         {
@@ -353,6 +411,29 @@ namespace SurvivalReborn
                             // Put the gas back in the bottle
                             var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                             badBottle.GasLevel = bottle.lastKnownFillLevel;
+
+                            MyLog.Default.WriteLine("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
+
+                            // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
+                            if (MyAPIGateway.Session.IsServer)
+                            {
+
+                                try
+                                {
+                                    MyLog.Default.WriteLine("SurvivalReborn: Synced fuel level for " + character.DisplayName);
+                                    SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
+                                    var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
+
+                                    MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
+                                }
+                                catch(Exception e)
+                                {
+                                    MyLog.Default.Error("SurvivalReborn: Server errored out while trying to send a packet. Submit a bug report.");
+                                    MyLog.Default.WriteLineAndConsole(e.Message);
+                                    MyLog.Default.WriteLineAndConsole(e.StackTrace);
+                                }
+
+                            }
                         }
                     }
                 }
@@ -367,10 +448,9 @@ namespace SurvivalReborn
                 /// 1. When leaving a seat
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
-                /// The character receives a microscopic nudge to trip this as soon as physics are ready.
+                /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
                 if (MyAPIGateway.Session.IsServer)
                 {
-                    //MyLog.Default.WriteLineAndConsole("ALOHA LOG SPAM!S");
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
                     if (!characterInfo.CollisionDamageEnabled)
@@ -380,7 +460,7 @@ namespace SurvivalReborn
                         {
                             characterInfo.CollisionDamageEnabled = true;
                             characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
-                            //MyAPIGateway.Utilities.ShowNotification("You moved. Collision damage enabled.");
+                            MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " moved. Collision damage enabled.");
                         }
                     }
                     // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
@@ -396,73 +476,30 @@ namespace SurvivalReborn
                         }
                         if(character.Physics.LinearVelocity.LengthSquared() == 0f)
                         {
-                            MyLog.Default.WriteLineAndConsole("Character's speed was set to zero and caused damage!");
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character's speed was set to zero and caused damage!");
                             MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
 
                         // We definitely crashed into something.
                         float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                        MyLog.Default.WriteLineAndConsole("Took " + damage + " collision damage.");
+                        MyLog.Default.WriteLineAndConsole("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
                     }
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
-
-                /*
-                // If collision damage is tripped, perform sanity check and possibly damage.
-                else if (characterInfo.PossibleCollision != 0f)
-                {
-                    // At this point, we are in the tick FOLLOWING the spike, and lastLinearVelocity is from BEFORE the spike.
-                    // Now we compare LinearVelocity before and after the acceleration spike to see if the character snapped back to its original velocity in a teleport
-
-                    // Acceleration squared over the past two phsyics ticks in m/s/s assuming 60 tps
-                    var twoTickAccelerationSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
-                    if (twoTickAccelerationSquared > DAMAGE_THRESHOLD_SQ)
-                    {
-                        // We definitely crashed into something. If you look reeeeeeally closely, you might see vanilla damage and this damage happen 1 tick apart.
-                        var damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, characterInfo.PossibleCollision) - DAMAGE_THRESHOLD));
-                        character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                        MyAPIGateway.Utilities.ShowNotification("Took " + damage + " collision damage.");
-                    }
-                    // RESET possible collision
-                    characterInfo.PossibleCollision = 0f;
-                }
-                // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
-                else if (character.Physics.LinearAcceleration.LengthSquared() > DAMAGE_THRESHOLD_SQ && character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared)
-                {
-                    // Multiply by 60 (ticks per second) to get m/s/s
-                    characterInfo.PossibleCollision = character.Physics.LinearAcceleration.Length();
-                    MyAPIGateway.Utilities.ShowNotification("Possible collision at " + characterInfo.PossibleCollision);
-
-                    // Exploratory debug
-                    var twoTickAccelerationSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
-                    if (twoTickAccelerationSquared > DAMAGE_THRESHOLD_SQ)
-                    {
-                        MyAPIGateway.Utilities.ShowNotification("This tick really did have insane acceleration");
-                    }
-                    else
-                    {
-                        MyAPIGateway.Utilities.ShowNotification("Tracking Linear acceleration would not have detected this.");
-                    }
-                }
-                // If nothing's going on, just update lastLinearVelocity
-                else if (characterInfo.CollisionDamageEnabled)
-                {
-                    characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
-                }
-                */
             }
 
             // Remove characters from dictionary if needed
+            // This cannot happen in the above loop as it might interrupt enumeration.
             foreach (var character in m_toRemove)
             {
                 m_characters[character].Close();
                 character.OnMarkForClose -= Character_OnMarkForClose;
                 m_characters.Remove(character);
+                MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " reparented or died. There are now " + m_characters.Count + " characters listed.");
             }
             m_toRemove.Clear();
-
         }
     }
 
