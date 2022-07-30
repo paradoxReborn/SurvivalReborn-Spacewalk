@@ -22,16 +22,16 @@
 using System;
 using System.Collections.Generic;
 using VRage.Game;
-using VRage.Game.Entity;
 using VRage.Game.Components;
+using VRage.Game.Entity;
 using VRage.Game.ModAPI;
 using VRage.ModAPI;
-using Sandbox.ModAPI;
 using Sandbox.Common.ObjectBuilders.Definitions;
+using Sandbox.Definitions;
 using Sandbox.Game;
 using Sandbox.Game.Entities.Character.Components;
 using Sandbox.Game.Entities;
-using Sandbox.Definitions;
+using Sandbox.ModAPI;
 using VRage.Utils;
 using VRageMath;
 

@@ -19,14 +19,6 @@
 ///    2. You must not represent your work as being part of the Survival Reborn series 
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Sandbox.Game.Entities;
-using Sandbox.Definitions;
-using VRage.Game;
 using ProtoBuf;
 
 namespace SurvivalReborn
@@ -39,17 +31,14 @@ namespace SurvivalReborn
         public SRFuelSyncPacket(long entityId, float fuelCorrection)
         {
             EntityId = entityId;
-            //FuelId = fuelId;
             FuelAmount = fuelCorrection;
         }
 
+        /// <summary>
+        /// EntityId of the character to re-sync
+        /// </summary>
         [ProtoMember(1)]
         public readonly long EntityId;
-
-        /*
-        [ProtoMember(2)]
-        public MyDefinitionId FuelId; // Cannot be read-only because UpdateStoredGasLevel requires it to be passed as ref
-        */
 
         /// <summary>
         /// Amount to be added or removed
