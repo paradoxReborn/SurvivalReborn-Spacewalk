@@ -1,12 +1,12 @@
 ﻿///    Copyright (C) 2022 Matthew Kern, a.k.a. Paradox Reborn
 ///
-///This program is free software: you can redistribute it and/or modify
+///    This program is free software: you can redistribute it and/or modify
 ///    it under the terms of the GNU General Public License as published by
 ///    the Free Software Foundation, either version 3 of the License, or
 ///    (at your option) any later version.
 ///
 ///    This program is distributed in the hope that it will be useful,
-///but WITHOUT ANY WARRANTY; without even the implied warranty of
+///    but WITHOUT ANY WARRANTY; without even the implied warranty of
 ///    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ///    GNU General Public License for more details.
 ///
@@ -39,8 +39,8 @@ namespace SurvivalReborn
 {
     /// <summary>
     /// To avoid creating multiple separate lists of characters in the world, multiple features are included in this class:
-    /// - Movement tweaks
-    /// - Collision damage changes
+    /// - Character movement tweaks
+    /// - Character collision damage changes
     /// - Anti-refueling while jetpack is on
     /// 
     /// Fixes some aspects of character movement that could not be set through sbc definitions:
@@ -283,6 +283,15 @@ namespace SurvivalReborn
             IMyCharacter character = obj as IMyCharacter;
             if (character != null)
             {
+                // There will be a duplicate if the player changes suit in the Medical Room.
+                // Duplicate must be removed and replaced to ensure the SRCharacterInfo is correct.
+                if (m_characters.ContainsKey(character))
+                {
+                    m_characters[character].Close();
+                    character.OnMarkForClose -= Character_OnMarkForClose;
+                    m_characters.Remove(character);
+                }
+
                 // Add to dictionary
                 m_characters.Add(character, new SRCharacterInfo(character));
 
