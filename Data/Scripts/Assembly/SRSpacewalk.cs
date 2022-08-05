@@ -252,7 +252,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Beta 0.4. Some sanity checks are disabled for testing purposes to catch rare bugs.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Beta 0.5. Some sanity checks are disabled for testing purposes to catch rare bugs.");
 
         }
 
