@@ -104,14 +104,29 @@ namespace SurvivalReborn
                 }
             }
 
+            // BUG: This function can throw a null reference exception
             public SRCharacterInfo(IMyCharacter character)
             {
+                if(character == null)
+                {
+                    MyLog.Default.Error("SurvivalReborn: SRCharacterInfo called on a null character.");
+                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                }
+
+                var characterDef = character.Definition as MyCharacterDefinition;
+                if(characterDef == null)
+                {
+                    MyLog.Default.Error("SurvivalReborn: Character definition is null!");
+                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    return;
+                }
+
                 // Find the fuel this character uses
-                string fuelName = (character.Definition as MyCharacterDefinition).Jetpack.ThrustProperties.FuelConverter.FuelId.SubtypeName;
+                string fuelName = characterDef.Jetpack.ThrustProperties.FuelConverter.FuelId.SubtypeName;
                 MyDefinitionId.TryParse("MyObjectBuilder_GasProperties/" + fuelName, out FuelId);
 
                 // Look through character's stored gasses to find fuel, and record its capacity.
-                var storedGasses = (character.Definition as MyCharacterDefinition).SuitResourceStorage;
+                var storedGasses = characterDef.SuitResourceStorage;
                 foreach (var gas in storedGasses)
                 {
                     if (gas.Id.SubtypeName == fuelName)
@@ -125,16 +140,30 @@ namespace SurvivalReborn
                 }
 
                 Inventory = (MyInventory)character.GetInventory();
-                Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
                 InventoryBottles = new List<SRInventoryBottle>();
                 OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
 
+                // Error checks and logging
+                if (Inventory != null)
+                    Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
+                else
+                {
+                    MyLog.Default.Error("SurvivalReborn: Character added with a null inventory!");
+                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                }
+
+                if (OxygenComponent == null)
+                {
+                    MyLog.Default.Error("SurvivalReborn: Character added with a null Oxygen Component!");
+                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                }
+
                 // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
                 var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
-                var maxDudeSpeed = Math.Max((character.Definition as MyCharacterDefinition).MaxSprintSpeed,
-                    Math.Max((character.Definition as MyCharacterDefinition).MaxRunSpeed, (character.Definition as MyCharacterDefinition).MaxBackrunSpeed));
+                var maxDudeSpeed = Math.Max(characterDef.MaxSprintSpeed,
+                    Math.Max(characterDef.MaxRunSpeed, characterDef.MaxBackrunSpeed));
                 MaxSpeed = maxShipSpeed + maxDudeSpeed;
                 MaxSpeedSquared = MaxSpeed * MaxSpeed;
 
@@ -252,7 +281,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Beta 0.5. Some sanity checks are disabled for testing purposes to catch rare bugs.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Beta 0.6. Some sanity checks are disabled for testing purposes to catch rare bugs.");
 
         }
 
@@ -278,8 +307,14 @@ namespace SurvivalReborn
         /// <summary>
         /// Add each character spawned in the world to m_characters.
         /// </summary>
-        private void MyEntities_OnEntityAdd(VRage.Game.Entity.MyEntity obj)
+        private void MyEntities_OnEntityAdd(MyEntity obj)
         {
+            if (m_characters == null)
+            {
+                MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                MyLog.Default.Error("SurvivalReborn: Attempted to add a character, but m_characters was null.");
+                return;
+            }
             IMyCharacter character = obj as IMyCharacter;
             if (character != null)
             {
