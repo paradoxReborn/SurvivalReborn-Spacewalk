@@ -111,37 +111,47 @@ namespace SurvivalReborn
                 {
                     MyLog.Default.Error("SurvivalReborn: SRCharacterInfo called on a null character.");
                     MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    return;
+                }
+                else
+                {
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
                 }
 
                 var characterDef = character.Definition as MyCharacterDefinition;
                 if(characterDef == null)
                 {
-                    MyLog.Default.Error("SurvivalReborn: Character definition is null!");
+                    MyLog.Default.Error("SurvivalReborn: Character definition for " + character.Name + " is null!");
                     MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
                     return;
                 }
 
                 // Find the fuel this character uses
-                string fuelName = characterDef.Jetpack.ThrustProperties.FuelConverter.FuelId.SubtypeName;
+                string fuelName = characterDef.Jetpack?.ThrustProperties?.FuelConverter?.FuelId.SubtypeName;
                 MyDefinitionId.TryParse("MyObjectBuilder_GasProperties/" + fuelName, out FuelId);
 
                 // Look through character's stored gasses to find fuel, and record its capacity.
                 var storedGasses = characterDef.SuitResourceStorage;
-                foreach (var gas in storedGasses)
+                if (storedGasses != null && FuelId != null)
                 {
-                    if (gas.Id.SubtypeName == fuelName)
+                    foreach (var gas in storedGasses)
                     {
-                        //MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
-                        FuelCapacity = gas.MaxCapacity;
-                        //MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
-                        //break;
+                        if (gas.Id.SubtypeName == fuelName)
+                        {
+                            //MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
+                            FuelCapacity = gas.MaxCapacity;
+                            //MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
+                            //break;
+                        }
+                        //MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
                     }
-                    //MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
                 }
+                else
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
 
                 Inventory = (MyInventory)character.GetInventory();
                 InventoryBottles = new List<SRInventoryBottle>();
-                OxygenComponent = character.Components.Get<MyCharacterOxygenComponent>();
+                OxygenComponent = character.Components?.Get<MyCharacterOxygenComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
 
@@ -197,6 +207,9 @@ namespace SurvivalReborn
             /// </summary>
             private void ScanInventory()
             {
+                if (Inventory == null)
+                    return;
+
                 // Reset bottle list
                 InventoryBottles.Clear();
 
@@ -216,7 +229,7 @@ namespace SurvivalReborn
             private bool HoldsFuel(MyPhysicalInventoryItem item)
             {
                 // OPTIMIZATION to prevent unnecessary calls to GetPhysicalItemDefinition
-                if (item.Content as MyObjectBuilder_GasContainerObject == null)
+                if (item.Content as MyObjectBuilder_GasContainerObject == null || FuelId == null)
                     return false;
 
                 // Check item definition to see what gas it holds
@@ -281,7 +294,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Beta 0.6. Some sanity checks are disabled for testing purposes to catch rare bugs.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Beta 0.7. Some sanity checks are disabled for testing purposes to catch rare bugs.");
 
         }
 
@@ -328,12 +341,20 @@ namespace SurvivalReborn
                 }
 
                 // Add to dictionary
-                m_characters.Add(character, new SRCharacterInfo(character));
+                var newCharacterInfo = new SRCharacterInfo(character);
+                if (newCharacterInfo != null)
+                {
+                    m_characters.Add(character, newCharacterInfo);
 
-                // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
-                character.OnMarkForClose += Character_OnMarkForClose;
+                    // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
+                    character.OnMarkForClose += Character_OnMarkForClose;
 
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_characters.Count + " characters listed.");
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_characters.Count + " characters listed.");
+                }
+                else
+                {
+                    MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid character.");
+                }
             }
         }
 
@@ -416,75 +437,77 @@ namespace SurvivalReborn
                 }
 
                 // JETPACK REFUELING RULE
-
-                // Check for jetpack changing state
-                if (character.EnabledThrusts != characterInfo.JetPackOn)
+                if (characterInfo.FuelId != null && characterInfo.OxygenComponent != null)
                 {
-                    // When the jetpack is switched on, update the last known value of bottles to prevent refueling
-                    if (character.EnabledThrusts)
-                        foreach (var bottle in characterInfo.InventoryBottles)
-                            bottle.lastKnownFillLevel = bottle.currentFillLevel;
-
-                    characterInfo.JetPackOn = character.EnabledThrusts;
-                    var vect = character.Physics.LinearVelocity;
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Jetpack activated. Rescanning inventory of " + character.DisplayName);
-                }
-
-                // Check for gas falling below threshold and begin checking for illegal refuels immediately.
-                if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
-                    characterInfo.GasLow = true;
-
-                // Prevent disallowed refueling.
-                // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
-                if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
-                {
-                    // Check for illegal refills
-                    foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
+                    // Check for jetpack changing state
+                    if (character.EnabledThrusts != characterInfo.JetPackOn)
                     {
-                        var delta = bottle.currentFillLevel - bottle.lastKnownFillLevel;
-                        if (delta != 0f)
+                        // When the jetpack is switched on, update the last known value of bottles to prevent refueling
+                        if (character.EnabledThrusts)
+                            foreach (var bottle in characterInfo.InventoryBottles)
+                                bottle.lastKnownFillLevel = bottle.currentFillLevel;
+
+                        characterInfo.JetPackOn = character.EnabledThrusts;
+                        var vect = character.Physics.LinearVelocity;
+                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Jetpack activated. Rescanning inventory of " + character.DisplayName);
+                    }
+
+                    // Check for gas falling below threshold and begin checking for illegal refuels immediately.
+                    if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                        characterInfo.GasLow = true;
+
+                    // Prevent disallowed refueling.
+                    // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
+                    if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
+                    {
+                        // Check for illegal refills
+                        foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                         {
-                            // Calculate correct amount to remove
-                            float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
-                            //MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
-
-                            // Set the fuel level back to what it should be.
-                            float fixedGasLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) - gasToRemove;
-                            characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, fixedGasLevel);
-
-                            // Put the gas back in the bottle
-                            var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
-                            badBottle.GasLevel = bottle.lastKnownFillLevel;
-
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
-
-                            // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
-                            if (MyAPIGateway.Session.IsServer)
+                            var delta = bottle.currentFillLevel - bottle.lastKnownFillLevel;
+                            if (delta != 0f)
                             {
+                                // Calculate correct amount to remove
+                                float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
+                                //MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
 
-                                try
+                                // Set the fuel level back to what it should be.
+                                float fixedGasLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) - gasToRemove;
+                                characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, fixedGasLevel);
+
+                                // Put the gas back in the bottle
+                                var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
+                                badBottle.GasLevel = bottle.lastKnownFillLevel;
+
+                                MyLog.Default.WriteLineAndConsole("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
+
+                                // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
+                                if (MyAPIGateway.Session.IsServer)
                                 {
-                                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
-                                    SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
-                                    var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
 
-                                    MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
-                                }
-                                catch(Exception e)
-                                {
-                                    MyLog.Default.Error("SurvivalReborn: Server errored out while trying to send a packet. Submit a bug report.");
-                                    MyLog.Default.WriteLineAndConsole(e.Message);
-                                    MyLog.Default.WriteLineAndConsole(e.StackTrace);
-                                }
+                                    try
+                                    {
+                                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
+                                        SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
+                                        var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
 
+                                        MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        MyLog.Default.Error("SurvivalReborn: Server errored out while trying to send a packet. Submit a bug report.");
+                                        MyLog.Default.WriteLineAndConsole(e.Message);
+                                        MyLog.Default.WriteLineAndConsole(e.StackTrace);
+                                    }
+
+                                }
                             }
                         }
                     }
-                }
 
-                // Delayed check for gas fill level. If this isn't delayed by one tick, the illegal refill will prevent the check that's meant to find it.
-                if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
-                    characterInfo.GasLow = false;
+                    // Delayed check for gas fill level. If this isn't delayed by one tick, the illegal refill will prevent the check that's meant to find it.
+                    if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                        characterInfo.GasLow = false;
+                }
 
                 // COLLISION DAMAGE RULE
 
