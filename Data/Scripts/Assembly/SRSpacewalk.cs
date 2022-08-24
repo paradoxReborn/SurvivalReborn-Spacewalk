@@ -160,14 +160,14 @@ namespace SurvivalReborn
                     Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
                 else
                 {
-                    MyLog.Default.Error("SurvivalReborn: Character added with a null inventory!");
-                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character added with a null inventory!");
+                    //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
                 }
 
                 if (OxygenComponent == null)
                 {
-                    MyLog.Default.Error("SurvivalReborn: Character added with a null Oxygen Component!");
-                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character added with a null Oxygen Component!");
+                    //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
                 }
 
                 // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
@@ -538,13 +538,13 @@ namespace SurvivalReborn
                     {
                         if (character.Physics.LinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared || characterInfo.lastLinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared)
                         {
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                            MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
+                            MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
                         if(character.Physics.LinearVelocity.LengthSquared() == 0f)
                         {
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character's speed was set to zero and caused damage!");
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                            MyLog.Default.Error("SurvivalReborn: Character's speed was set to zero and caused damage!");
+                            MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
 
                         // We definitely crashed into something.
