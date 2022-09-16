@@ -60,6 +60,9 @@ namespace SurvivalReborn
         /// </summary>
         private class SRCharacterInfo
         {
+            // Warning bit for errors during constructor
+            public bool valid = true;
+
             /// VALUES FOR COLLISION DAMAGE RULE
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
@@ -109,8 +112,9 @@ namespace SurvivalReborn
             {
                 if(character == null)
                 {
-                    MyLog.Default.Error("SurvivalReborn: SRCharacterInfo called on a null character.");
-                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    MyLog.Default.Warning("SurvivalReborn: SRCharacterInfo called on a null character.");
+                    // MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    valid = false;
                     return;
                 }
                 else
@@ -121,8 +125,9 @@ namespace SurvivalReborn
                 var characterDef = character.Definition as MyCharacterDefinition;
                 if(characterDef == null)
                 {
-                    MyLog.Default.Error("SurvivalReborn: Character definition for " + character.Name + " is null!");
-                    MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    MyLog.Default.Warning("SurvivalReborn: Character definition for " + character.Name + " is null!");
+                    // MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
+                    valid = false;
                     return;
                 }
 
@@ -342,7 +347,7 @@ namespace SurvivalReborn
 
                 // Add to dictionary
                 var newCharacterInfo = new SRCharacterInfo(character);
-                if (newCharacterInfo != null)
+                if (newCharacterInfo != null && newCharacterInfo.valid)
                 {
                     m_characters.Add(character, newCharacterInfo);
 
@@ -353,7 +358,7 @@ namespace SurvivalReborn
                 }
                 else
                 {
-                    MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid character.");
+                    MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid or null character.");
                 }
             }
         }
