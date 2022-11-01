@@ -119,7 +119,7 @@ namespace SurvivalReborn
                 }
                 else
                 {
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
+                    MyLog.Default.WriteLine("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
                 }
 
                 var characterDef = character.Definition as MyCharacterDefinition;
@@ -152,7 +152,7 @@ namespace SurvivalReborn
                     }
                 }
                 else
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
+                    MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
 
                 Inventory = (MyInventory)character.GetInventory();
                 InventoryBottles = new List<SRInventoryBottle>();
@@ -165,13 +165,13 @@ namespace SurvivalReborn
                     Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
                 else
                 {
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character added with a null inventory!");
+                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory!");
                     //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
                 }
 
                 if (OxygenComponent == null)
                 {
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: Character added with a null Oxygen Component!");
+                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component!");
                     //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
                 }
 
@@ -299,7 +299,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Beta 0.7. Some sanity checks are disabled for testing purposes to catch rare bugs.");
+            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Stable 1.0.");
 
         }
 
@@ -319,7 +319,7 @@ namespace SurvivalReborn
             MyPerGameSettings.CharacterMovement.SprintDecceleration = m_defaultSprintDeceleration;
 
             //Log
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: MyPerGameSettings returned to defaults.");
+            MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings returned to defaults.");
         }
 
         /// <summary>
@@ -354,7 +354,7 @@ namespace SurvivalReborn
                     // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                     character.OnMarkForClose += Character_OnMarkForClose;
 
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_characters.Count + " characters listed.");
+                    MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_characters.Count + " characters listed.");
                 }
                 else
                 {
@@ -377,7 +377,7 @@ namespace SurvivalReborn
                 m_characters.Remove(character);
                 character.OnMarkForClose -= Character_OnMarkForClose;
             }
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_characters.Count + " characters listed.");
+            MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_characters.Count + " characters listed.");
         }
 
         /// <summary>
@@ -454,7 +454,7 @@ namespace SurvivalReborn
 
                         characterInfo.JetPackOn = character.EnabledThrusts;
                         var vect = character.Physics.LinearVelocity;
-                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Jetpack activated. Rescanning inventory of " + character.DisplayName);
+                        MyLog.Default.WriteLine("SurvivalReborn: Jetpack activated. Rescanning inventory of " + character.DisplayName);
                     }
 
                     // Check for gas falling below threshold and begin checking for illegal refuels immediately.
@@ -483,7 +483,7 @@ namespace SurvivalReborn
                                 var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                                 badBottle.GasLevel = bottle.lastKnownFillLevel;
 
-                                MyLog.Default.WriteLineAndConsole("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
+                                MyLog.Default.WriteLine("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
 
                                 // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
                                 if (MyAPIGateway.Session.IsServer)
@@ -491,7 +491,7 @@ namespace SurvivalReborn
 
                                     try
                                     {
-                                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
+                                        MyLog.Default.WriteLine("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
                                         SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
                                         var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
 
@@ -532,7 +532,7 @@ namespace SurvivalReborn
                         {
                             characterInfo.CollisionDamageEnabled = true;
                             characterInfo.lastLinearVelocity = character.Physics.LinearVelocity; // Initialize for sanity on first movement.
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " moved. Collision damage enabled.");
+                            MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " moved. Collision damage enabled.");
                         }
                     }
                     // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
@@ -555,7 +555,7 @@ namespace SurvivalReborn
                         // We definitely crashed into something.
                         float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
-                        MyLog.Default.WriteLineAndConsole("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
+                        MyLog.Default.WriteLine("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
                     }
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
@@ -569,7 +569,7 @@ namespace SurvivalReborn
                 m_characters[character].Close();
                 character.OnMarkForClose -= Character_OnMarkForClose;
                 m_characters.Remove(character);
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: " + character.DisplayName + " reparented or died. There are now " + m_characters.Count + " characters listed.");
+                MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " reparented or died. There are now " + m_characters.Count + " characters listed.");
             }
             m_toRemove.Clear();
         }
