@@ -443,9 +443,11 @@ namespace SurvivalReborn
                 }
 
                 // JETPACK REFUELING RULE
-                if (characterInfo.FuelId != null && characterInfo.OxygenComponent != null)
+                // OPTIMIZATION: Don't run refueling rule if there are no bottles in inventory.
+                if (characterInfo.FuelId != null && characterInfo.OxygenComponent != null && characterInfo.InventoryBottles.Count > 0)
                 {
                     // Check for jetpack changing state
+                    // Should not be needed if bottle is added while jetpack is on, since the bottle's capacity is checked on add to inventory
                     if (character.EnabledThrusts != characterInfo.JetPackOn)
                     {
                         // When the jetpack is switched on, update the last known value of bottles to prevent refueling
