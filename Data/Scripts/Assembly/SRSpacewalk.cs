@@ -466,7 +466,7 @@ namespace SurvivalReborn
 
                     // Prevent disallowed refueling.
                     // OPTIMIZATION: Only check this when the jetpack is on, there are bottles in inventory, and fuel is low enough to attempt refueling
-                    if (character.EnabledThrusts && characterInfo.InventoryBottles.Count != 0 && characterInfo.GasLow)
+                    if (character.EnabledThrusts && characterInfo.GasLow)
                     {
                         // Check for illegal refills
                         foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
