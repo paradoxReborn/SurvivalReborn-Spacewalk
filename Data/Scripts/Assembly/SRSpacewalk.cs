@@ -516,11 +516,29 @@ namespace SurvivalReborn
                     // Refueling allowed. Auto-top-off from bottles.
                     else
                     {
+                        // Fuel never appears to set all the way to 1.0
                         if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < 0.995f)
                         {
-                            MyAPIGateway.Utilities.ShowNotification("Your fuel level is: " + characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
-                            MyAPIGateway.Utilities.ShowNotification("Free refill courtesy of mod under development LOL");
-                            characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, 1.0f);
+                            foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
+                            {
+                                double fuelNeeded = characterInfo.FuelCapacity * (1.0f - characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
+                                MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "fuel needed: " + fuelNeeded);
+                                MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "gas bottle capacity: " + bottle.capacity);
+                                double gasToTake = Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded);
+                                var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
+
+                                MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Taking from bottle: " + gasToTake);
+
+                                // Transfer Gas
+                                bottleItem.GasLevel -= (float)gasToTake / bottle.capacity;
+                                float fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
+                                float newFuelLevel = fuelLevel + ((float)gasToTake / characterInfo.FuelCapacity); // parintheses for clarity only
+                                characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, newFuelLevel);
+
+                                MyAPIGateway.Utilities.ShowNotification("Bottle fill level updated to: " + bottleItem.GasLevel);
+                            }
+
+                            
                         }
                     }
 
