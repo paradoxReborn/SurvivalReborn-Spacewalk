@@ -541,24 +541,18 @@ namespace SurvivalReborn
                                 {
                                     // Calculate gas moved from this bottle
                                     double fuelNeeded = characterInfo.FuelCapacity * (1.0f - characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
-                                    MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "fuel needed: " + fuelNeeded);
-                                    MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "gas bottle capacity: " + bottle.capacity);
-                                    // double gasToTake = Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded);
                                     double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
-                                    var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
-
-                                    MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Taking from bottle: " + gasToTake);
 
                                     // Transfer Gas
+                                    var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                                     bottleItem.GasLevel -= (float)gasToTake / bottle.capacity;
                                     bottle.lastKnownFillLevel = bottleItem.GasLevel;
+
                                     float fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
                                     float newFuelLevel = fuelLevel + ((float)gasToTake / characterInfo.FuelCapacity); // parintheses for clarity only
                                     characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, newFuelLevel);
 
-                                    MyAPIGateway.Utilities.ShowNotification("Bottle fill level updated to: " + bottleItem.GasLevel);
-
-                                    break; // Only take from one bottlle per tick. User may notice a barely-perceptible "bump" as the gas feed switches bottles. This is realistic.
+                                    break; // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds.
                                 }
                             }
                             // Set timer for next refuel tick
