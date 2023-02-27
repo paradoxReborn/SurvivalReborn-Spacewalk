@@ -84,6 +84,8 @@ namespace SurvivalReborn
             public MyDefinitionId FuelId;
             // This character's fuel capacity
             public float FuelCapacity;
+            // Throughput of fuel gas in OxygenComponent
+            public float FuelThroughput;
             // Bool to detect when jetpack turns on
             public bool JetPackOn;
             // GasLow true if the game may attempt a vanilla refuel.
@@ -147,6 +149,7 @@ namespace SurvivalReborn
                         {
                             //MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
                             FuelCapacity = gas.MaxCapacity;
+                            FuelThroughput = gas.Throughput;
                             //MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
                             //break;
                         }
@@ -263,8 +266,7 @@ namespace SurvivalReborn
         // Delay to refuel jetpack in seconds
         const float JETPACK_COOLDOWN = 2.5f;
         // Fuel flow per tick from bottles in units of gas
-        const float JETPACK_REFUEL_AMOUNT = 5f;
-        const float JETPACK_REFUEL_TIME = 1f;
+        const float JETPACK_REFUEL_TIME = 1f; // Will throw off throughput if changed from 1s
 
         // Defaults to restore on world close
         private float m_defaultCharacterGravity;
@@ -542,7 +544,7 @@ namespace SurvivalReborn
                                     MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "fuel needed: " + fuelNeeded);
                                     MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "gas bottle capacity: " + bottle.capacity);
                                     // double gasToTake = Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded);
-                                    double gasToTake = Math.Min(JETPACK_REFUEL_AMOUNT, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                                    double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
                                     var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
 
                                     MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Taking from bottle: " + gasToTake);
