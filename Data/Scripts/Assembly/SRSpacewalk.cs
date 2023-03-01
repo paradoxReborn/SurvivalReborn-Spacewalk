@@ -164,6 +164,7 @@ namespace SurvivalReborn
                 OxygenComponent = character.Components?.Get<MyCharacterOxygenComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 JetPackOn = character.EnabledThrusts;
+                RefuelDelay = 0f;
 
                 // Error checks and logging
                 if (Inventory != null)
@@ -455,7 +456,7 @@ namespace SurvivalReborn
                 // JETPACK REFUELING RULE
                 // OPTIMIZATION: Don't run refueling rule if there are no bottles in inventory.
                 // Sanity check: Don't run refueling rule if the fuel id or oxygencomponent is missing
-                if (characterInfo.FuelId != null && characterInfo.OxygenComponent != null && characterInfo.InventoryBottles.Count > 0)
+                if (characterInfo.InventoryBottles.Count > 0 && characterInfo.FuelId != null && characterInfo.OxygenComponent != null)
                 {
                     // Reset or decrement delay until refuel is allowed
                     if (character.EnabledThrusts)
@@ -529,7 +530,7 @@ namespace SurvivalReborn
                     }
 
                     // If refueling is allowed, top-off from bottles.
-                    // A few frames of visual delay are of not visible to the player, so no resync is needed
+                    // No resync is needed as the server doesn't lie to clients about this part.
                     if (characterInfo.RefuelDelay <=0)
                     {
                         // Fuel never appears to set all the way to 1.0
