@@ -50,8 +50,11 @@ namespace SurvivalReborn
     /// - Smooth out player movement a bit
     /// Defaults are restored on world close in case the mod is removed. Otherwise the world would keep the modded global values.
     /// 
-    /// Jetpack anti-refueling works regardless of the gas a specific character uses for fuel.
+    /// Jetpack refueling changes work regardless of the gas a specific character uses for fuel.
     /// It should be compatible with custom jetpack fuel gasses such as hydrogen peroxide or methane.
+    /// 
+    /// Refueling rules attempt to account for mods that may refill tanks while in the inventory. This has a small performance cost,
+    /// but the mod's overall performance impact should be negligible anyway.
     /// </summary>
     [MySessionComponentDescriptor(MyUpdateOrder.BeforeSimulation)]
     class SRSpacewalk : MySessionComponentBase
@@ -207,7 +210,6 @@ namespace SurvivalReborn
                 // Ignore anything that's not a fuel bottle
                 if (CanRefuelFrom(arg2))
                     BottleMoved.Invoke(subject);
-                    //ScanInventory();
             }
 
             /// <summary>
@@ -273,10 +275,8 @@ namespace SurvivalReborn
         const float IGNORE_ABOVE = 1500f; // Should be roughly where vanilla damage starts
         const float DAMAGE_PER_MSS = 0.03f;
 
-        // Delay to refuel jetpack in seconds
+        // Delay to refuel jetpack in seconds from the time it shuts off
         const float JETPACK_COOLDOWN = 2.5f;
-        // Fuel flow per tick from bottles in units of gas
-        const float JETPACK_REFUEL_TIME = 1f; // Will throw off throughput if changed from 1s
 
         // Defaults to restore on world close
         private float m_defaultCharacterGravity;
@@ -418,7 +418,6 @@ namespace SurvivalReborn
             }
             //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
 
-            // TODO: Don't activate these rules if bottles are all empty.
             if (InventoryBottles.Count > 0)
             {
                 if (!m_autoRefuel.Contains(character))
@@ -426,6 +425,13 @@ namespace SurvivalReborn
                 if (!m_jetpackRule.Contains(character))
                     m_jetpackRule.Add(character);
             }
+            else
+            {
+                m_autoRefuel.Remove(character);
+                m_jetpackRule.Remove(character);
+            }
+
+            MyAPIGateway.Utilities.ShowNotification("SurvivalReborn debug: Scanned inventory of " + character.DisplayName);
         }
 
         /// <summary>
@@ -507,7 +513,7 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
-                if (MyAPIGateway.Session.IsServer)
+                if (MyAPIGateway.Session.IsServer) //TODO: Any harm in running this on client too?
                 {
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
@@ -545,6 +551,8 @@ namespace SurvivalReborn
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
                     }
+                    else if (character.Parent != null)
+                        m_collisionRule.RemoveAt(i);
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
@@ -552,14 +560,14 @@ namespace SurvivalReborn
 
             // JETPACK REFUELING RULE
             // Disable Vanilla bottle refueling
-            // TODO: Time from the first illegal refuel to know what tick the next will happen on. Don't run the check constantly.
             for (int i = m_jetpackRule.Count - 1; i >= 0; i--)
             {
                 var character = m_jetpackRule[i];
                 var characterInfo = m_charinfos[character];
 
-                // OPTIMIZATION: only check for illegal refuel if gas jumps from low to filled
-                if (characterInfo.GasLow && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                // OPTIMIZATION: only check for illegal refuel if gas is low enough to cause one on this tick or the last one
+                // BUG: This doesn't account for an extremely rare edge case where a bottle was refilled and an illegal refill happens on the same tick that gas gets low.
+                if (characterInfo.GasLow || characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
                 {
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
@@ -607,8 +615,8 @@ namespace SurvivalReborn
                         }
                     }
                 }
-                // Correct state ensured by this point. Update GasLow control bit.
-                characterInfo.GasLow = (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION);
+                // Delay check for GasLow to ensure an illegal refill doesn't disable the check meant to find it.
+                characterInfo.GasLow = (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION);
                 // OPTIMIZATION: If parented and not low, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
                 if (character.Parent != null && !characterInfo.GasLow)
                     m_jetpackRule.RemoveAt(i);
@@ -653,9 +661,12 @@ namespace SurvivalReborn
                         break; // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
                     }
 
-                    // Set timer for next refuel tick
-                    characterInfo.RefuelDelay = JETPACK_REFUEL_TIME;
+                    // Set timer for next refuel tick. Fuel flow is always per second so this is always one second.
+                    characterInfo.RefuelDelay = 1f;
                 }
+                // OPTIMIZATION: Remove from list if parented and not in need of refuel
+                else if (character.Parent != null)
+                    m_autoRefuel.RemoveAt(i);
             }
         }
     }
