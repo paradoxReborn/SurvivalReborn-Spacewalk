@@ -285,8 +285,8 @@ namespace SurvivalReborn
             }
 
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
-            //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate A for version 1.1.");
-            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
+            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate B for version 1.1.");
+            //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
             //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn: Loaded Spacewalk Dev Testing version.", 60000);
         }
 
@@ -322,7 +322,7 @@ namespace SurvivalReborn
                 return;
             }
             IMyCharacter character = obj as IMyCharacter;
-            if (character != null)
+            if (character != null && !character.IsDead)
             {
                 // There will be a duplicate if the player changes suit in the Medical Room.
                 // Duplicate must be removed and replaced to ensure the SRCharacterInfo is correct.
@@ -355,7 +355,7 @@ namespace SurvivalReborn
                 }
                 else
                 {
-                    MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid or null character.");
+                    MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid, null, or dead character.");
                     return;
                 }
             }
@@ -481,7 +481,7 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
-                if (MyAPIGateway.Session.IsServer) //TODO: Any harm in running this on client too?
+                if (MyAPIGateway.Session.IsServer && character.Parent == null) //TODO: Any harm in running this on client too?
                 {
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
