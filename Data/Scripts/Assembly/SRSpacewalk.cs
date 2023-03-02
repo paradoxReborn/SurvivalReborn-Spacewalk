@@ -329,6 +329,7 @@ namespace SurvivalReborn
         {
             // Unhook events
             MyEntities.OnEntityAdd -= TrackCharacter;
+            MyEntities.OnEntityCreate -= TrackCharacter;
 
             // Unregister desync fix
             MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(5064, ReceivedCorrection);
@@ -362,7 +363,7 @@ namespace SurvivalReborn
                 // Duplicate must be removed and replaced to ensure the SRCharacterInfo is correct.
                 // There's a little extra overhead for completely replacing the SRCharacterInfo but this ensures a clean start in every case.
                 if (m_charinfos.ContainsKey(character))
-                    m_charinfos[character].Close(); // Only need to close as the event handler does everything else
+                    Untrack_Character(character);
 
                 // Add to dictionary
                 var newCharacterInfo = new SRCharacterInfo(character);
@@ -565,7 +566,7 @@ namespace SurvivalReborn
                 var character = m_jetpackRule[i];
                 var characterInfo = m_charinfos[character];
 
-                // OPTIMIZATION: only check for illegal refuel if gas is low enough to cause one on this tick or the last one
+                // OPTIMIZATION: only check for illegal refuel if gas was low enough to cause one on this tick or the last one
                 // BUG: This doesn't account for an extremely rare edge case where a bottle was refilled and an illegal refill happens on the same tick that gas gets low.
                 if (characterInfo.GasLow || characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
                 {
