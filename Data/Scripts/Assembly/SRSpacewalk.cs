@@ -175,16 +175,10 @@ namespace SurvivalReborn
                 if (Inventory != null)
                     Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
                 else
-                {
-                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory!");
-                    //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
-                }
+                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory.");
 
                 if (OxygenComponent == null)
-                {
-                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component!");
-                    //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
-                }
+                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component.");
 
                 // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
                 var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
@@ -211,37 +205,6 @@ namespace SurvivalReborn
                 if (CanRefuelFrom(arg2))
                     BottleMoved.Invoke(subject);
             }
-
-            /// <summary>
-            /// Scan this character's inventory for bottles that hold fuel for its jetpack.
-            /// TODO: Move this to containing class
-            /// </summary>
-            /*
-            private void ScanInventory()
-            {
-                if (Inventory == null)
-                    return;
-
-                // Reset bottle list
-                InventoryBottles.Clear();
-
-                List<MyPhysicalInventoryItem> items = Inventory.GetItems();
-                foreach (MyPhysicalInventoryItem item in items)
-                {
-                    // Add gas bottles to list
-                    if (CanRefuelFrom(item))
-                        InventoryBottles.Add(new SRInventoryBottle(item));
-                }
-                //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
-
-                // TODO: Activate jetpack and refueling rules if there's a non-empty bottle in inventory
-                // Ugly solution (reference containing class) or custom event
-                if (InventoryBottles.Count > 0)
-                {
-                    // TODO: Create a scaninventory event or action or whatever to handle this so I don't need a refernce to containing class
-                }
-            }
-            */
 
             /// <summary>
             /// Return true if this item is a gas container that holds fuel for this character's jetpack.
@@ -432,7 +395,7 @@ namespace SurvivalReborn
                 m_jetpackRule.Remove(character);
             }
 
-            MyAPIGateway.Utilities.ShowNotification("SurvivalReborn debug: Scanned inventory of " + character.DisplayName);
+            // MyAPIGateway.Utilities.ShowNotification("SurvivalReborn debug: Scanned inventory of " + character.DisplayName);
         }
 
         /// <summary>
