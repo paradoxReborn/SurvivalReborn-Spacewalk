@@ -532,10 +532,11 @@ namespace SurvivalReborn
             {
                 var character = m_jetpackRule[i];
                 var characterInfo = m_charinfos[character];
+                var gasLowThisTick = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION;
 
                 // OPTIMIZATION: only check for illegal refuel if gas was low enough to cause one on this tick or the last one
                 // BUG: This doesn't account for an extremely rare edge case where a bottle was refilled and an illegal refill happens on the same tick that gas gets low.
-                if (characterInfo.GasLow || characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
+                if (characterInfo.GasLow || gasLowThisTick)
                 {
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
@@ -551,7 +552,6 @@ namespace SurvivalReborn
 
                         // Calculate correct amount to remove
                         float gasToRemove = -delta * bottle.capacity / characterInfo.FuelCapacity;
-                        //MyAPIGateway.Utilities.ShowNotification("You weren't supposed to refuel. Removing " + gasToRemove + " hydrogen.");
 
                         // Set the fuel level back to what it should be.
                         float fixedGasLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) - gasToRemove;
@@ -587,7 +587,7 @@ namespace SurvivalReborn
                 else if (character.Parent != null)
                     m_jetpackRule.RemoveAt(i);
                 // Delay check for GasLow to ensure an illegal refill doesn't disable the check meant to find it.
-                characterInfo.GasLow = (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION);
+                characterInfo.GasLow = gasLowThisTick;
             }
 
             // AUTO-REFUEL rule
