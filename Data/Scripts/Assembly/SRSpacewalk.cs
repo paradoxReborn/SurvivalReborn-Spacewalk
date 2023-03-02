@@ -285,7 +285,9 @@ namespace SurvivalReborn
             }
 
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
-            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate A for version 1.1.");
+            //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate A for version 1.1.");
+            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
+            //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn: Loaded Spacewalk Dev Testing version.", 60000);
         }
 
         protected override void UnloadData()
@@ -338,22 +340,23 @@ namespace SurvivalReborn
                     character.OnMarkForClose += Untrack_Character;
                     character.CharacterDied += Untrack_Character; // Checking for death every tick no longer needed
 
+                    // Add to collision enforcement list if not parented
+                    if (character.Parent == null)
+                        m_collisionRule.Add(character);
+                    // Setup jetpack and refuel rules if character has a valid jetpack and inventory
+                    if (newCharacterInfo.FuelId != null && newCharacterInfo.OxygenComponent != null && newCharacterInfo.Inventory != null)
+                    {
+                        newCharacterInfo.BottleMoved += ScanInventory;
+                        // Initial inventory scan
+                        ScanInventory(character);
+                    }
+
                     MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_charinfos.Count + " characters listed.");
                 }
                 else
                 {
                     MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid or null character.");
-                }
-
-                // Add to collision enforcement list if not parented
-                if (character.Parent == null)
-                    m_collisionRule.Add(character);
-                // Setup jetpack and refuel rules if character has a valid jetpack and inventory
-                if (newCharacterInfo.FuelId != null && newCharacterInfo.OxygenComponent != null && newCharacterInfo.Inventory != null)
-                {
-                    newCharacterInfo.BottleMoved += ScanInventory;
-                    // Initial inventory scan
-                    ScanInventory(character);
+                    return;
                 }
             }
         }
@@ -365,7 +368,7 @@ namespace SurvivalReborn
         /// <param name="character"></param>
         private void ScanInventory(IMyCharacter character)
         {
-            var characterInfo = m_charinfos[character];
+            var characterInfo = m_charinfos[character];         
             var Inventory = characterInfo.Inventory;
             if (Inventory == null)
                 return;
@@ -410,6 +413,7 @@ namespace SurvivalReborn
             {
                 character.OnMarkForClose -= Untrack_Character;
                 character.CharacterDied -= Untrack_Character;
+                MyLog.Default.Warning("SurvivalReborn: Tried to untrack a character that wasn't in m_charinfos");
                 m_charinfos[character].BottleMoved -= ScanInventory;
                 m_charinfos[character].Close();
                 m_charinfos.Remove(character);
