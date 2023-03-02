@@ -38,10 +38,11 @@ using VRageMath;
 namespace SurvivalReborn
 {
     /// <summary>
-    /// To avoid creating multiple separate lists of characters in the world, multiple features are included in this class:
-    /// - Character movement tweaks
+    /// To track characters and information about them efficiently, multiple features are included in this class:
+    /// - Character movement config tweaks
     /// - Character collision damage changes
-    /// - Anti-refueling while jetpack is on
+    /// - Disable Vanilla jetpack refuel from bottles
+    /// - Automatic top-off from fuel bottles only while jetpack is shut off and "cool."
     /// 
     /// Fixes some aspects of character movement that could not be set through sbc definitions:
     /// - Remove supergravity
@@ -60,6 +61,8 @@ namespace SurvivalReborn
         /// </summary>
         private class SRCharacterInfo
         {
+            // Reference to character this info belongs to
+            public IMyCharacter subject;
             // Warning bit for errors during constructor
             public bool valid = true;
 
@@ -86,12 +89,14 @@ namespace SurvivalReborn
             public float FuelCapacity;
             // Throughput of fuel gas in OxygenComponent
             public float FuelThroughput;
-            // Bool to detect when jetpack turns on
-            public bool JetPackOn;
             // GasLow true if the game may attempt a vanilla refuel.
             public bool GasLow;
             // Seconds until jetpack is allowed to refuel
             public float RefuelDelay;
+
+            // Event for a fuel bottle getting moved around in inventory
+            public delegate void BottleMovedHandler(IMyCharacter character);
+            public event BottleMovedHandler BottleMoved;
 
             /// <summary>
             /// A data structure for tracking gas bottles in character inventories to enforce the jetpack refueling rule
@@ -123,6 +128,7 @@ namespace SurvivalReborn
                 }
                 else
                 {
+                    subject = character;
                     MyLog.Default.WriteLine("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
                 }
 
@@ -147,13 +153,10 @@ namespace SurvivalReborn
                     {
                         if (gas.Id.SubtypeName == fuelName)
                         {
-                            //MyAPIGateway.Utilities.ShowNotification("Setting fuel capacity to " + gas.MaxCapacity, 20000);
                             FuelCapacity = gas.MaxCapacity;
                             FuelThroughput = gas.Throughput;
-                            //MyAPIGateway.Utilities.ShowNotification("Set fuel capacity to " + FuelCapacity, 20000);
-                            //break;
+                            break;
                         }
-                        //MyAPIGateway.Utilities.ShowNotification("This character's " + gas.Id + " capacity is " + gas.MaxCapacity, 20000);
                     }
                 }
                 else
@@ -163,7 +166,6 @@ namespace SurvivalReborn
                 InventoryBottles = new List<SRInventoryBottle>();
                 OxygenComponent = character.Components?.Get<MyCharacterOxygenComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
-                JetPackOn = character.EnabledThrusts;
                 RefuelDelay = 0f;
 
                 // Error checks and logging
@@ -187,12 +189,6 @@ namespace SurvivalReborn
                     Math.Max(characterDef.MaxRunSpeed, characterDef.MaxBackrunSpeed));
                 MaxSpeed = maxShipSpeed + maxDudeSpeed;
                 MaxSpeedSquared = MaxSpeed * MaxSpeed;
-
-                //MyAPIGateway.Utilities.ShowNotification("Created character info with fuel capacity of " + FuelCapacity, 20000);
-
-                // Initial inventory scan
-                ScanInventory();
-                //MyAPIGateway.Utilities.ShowNotification("Loaded your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
             }
 
             /// <summary>
@@ -209,13 +205,16 @@ namespace SurvivalReborn
             private void Inventory_InventoryContentChanged(MyInventoryBase arg1, MyPhysicalInventoryItem arg2, VRage.MyFixedPoint arg3)
             {
                 // Ignore anything that's not a fuel bottle
-                if (HoldsFuel(arg2))
-                    ScanInventory();
+                if (CanRefuelFrom(arg2))
+                    BottleMoved.Invoke(subject);
+                    //ScanInventory();
             }
 
             /// <summary>
             /// Scan this character's inventory for bottles that hold fuel for its jetpack.
+            /// TODO: Move this to containing class
             /// </summary>
+            /*
             private void ScanInventory()
             {
                 if (Inventory == null)
@@ -228,16 +227,24 @@ namespace SurvivalReborn
                 foreach (MyPhysicalInventoryItem item in items)
                 {
                     // Add gas bottles to list
-                    if (HoldsFuel(item))
+                    if (CanRefuelFrom(item))
                         InventoryBottles.Add(new SRInventoryBottle(item));
                 }
                 //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
+
+                // TODO: Activate jetpack and refueling rules if there's a non-empty bottle in inventory
+                // Ugly solution (reference containing class) or custom event
+                if (InventoryBottles.Count > 0)
+                {
+                    // TODO: Create a scaninventory event or action or whatever to handle this so I don't need a refernce to containing class
+                }
             }
+            */
 
             /// <summary>
             /// Return true if this item is a gas container that holds fuel for this character's jetpack.
             /// </summary>
-            private bool HoldsFuel(MyPhysicalInventoryItem item)
+            public bool CanRefuelFrom(MyPhysicalInventoryItem item)
             {
                 // OPTIMIZATION to prevent unnecessary calls to GetPhysicalItemDefinition
                 if (item.Content as MyObjectBuilder_GasContainerObject == null || FuelId == null)
@@ -280,10 +287,10 @@ namespace SurvivalReborn
 
         public override void LoadData()
         {
-            // Hook entity add for character list
-            MyEntities.OnEntityAdd += MyEntities_OnEntityAdd;
-
-            MyEntities.OnEntityCreate += MyEntities_OnEntityCreate;
+            // Hook entity create and add for character list
+            MyEntities.OnEntityCreate += TrackCharacter;
+            // Tracking OnEntityAdd catches certain edge cases like changing characters in medical room.
+            MyEntities.OnEntityAdd += TrackCharacter;
 
             // Register desync fix
             MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(5064, ReceivedCorrection);
@@ -321,7 +328,7 @@ namespace SurvivalReborn
         protected override void UnloadData()
         {
             // Unhook events
-            MyEntities.OnEntityAdd -= MyEntities_OnEntityAdd;
+            MyEntities.OnEntityAdd -= TrackCharacter;
 
             // Unregister desync fix
             MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(5064, ReceivedCorrection);
@@ -337,21 +344,10 @@ namespace SurvivalReborn
             MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings returned to defaults.");
         }
 
-
-        private void MyEntities_OnEntityCreate(MyEntity obj)
-        {
-            IMyCharacter character = obj as IMyCharacter;
-            if (character != null)
-            {
-                MyAPIGateway.Utilities.ShowNotification("Character " + character.DisplayName + " created.", 30000, "Red");
-                MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " created.");
-            }
-        }
-
         /// <summary>
-        /// Add each character spawned in the world to m_characters.
+        /// Add character to m_characters and appropriate rules lists.
         /// </summary>
-        private void MyEntities_OnEntityAdd(MyEntity obj)
+        private void TrackCharacter(MyEntity obj)
         {
             if (m_charinfos == null)
             {
@@ -389,10 +385,45 @@ namespace SurvivalReborn
                     MyLog.Default.Warning("SurvivalReborn: Skipped adding an invalid or null character.");
                 }
 
-                // Add to collision enforcement list
-                m_collisionRule.Add(character);
+                // Add to collision enforcement list if not parented
+                if (character.Parent == null)
+                    m_collisionRule.Add(character);
                 // Add to jetpack enforcement list if it has a valid jetpack in its definition
                 if (m_charinfos[character].FuelId != null && m_charinfos[character].OxygenComponent != null)
+                    m_jetpackRule.Add(character);
+            }
+        }
+
+        /// <summary>
+        /// Scan a character's inventory for bottles containing jetpack fuel.
+        /// Add character to fuel-related rule lists if in possession of at least one fuel bottle.
+        /// </summary>
+        /// <param name="character"></param>
+        private void ScanInventory(IMyCharacter character)
+        {
+            var characterInfo = m_charinfos[character];
+            var Inventory = characterInfo.Inventory;
+            if (Inventory == null)
+                return;
+
+            var InventoryBottles = characterInfo.InventoryBottles;
+            // Reset and repopulate bottle list
+            InventoryBottles.Clear();
+            List<MyPhysicalInventoryItem> items = Inventory.GetItems();
+            foreach (MyPhysicalInventoryItem item in items)
+            {
+                // Add gas bottles to list
+                if (characterInfo.CanRefuelFrom(item))
+                    InventoryBottles.Add(new SRCharacterInfo.SRInventoryBottle(item));
+            }
+            //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
+
+            // TODO: Don't activate these rules if bottles are all empty.
+            if (InventoryBottles.Count > 0)
+            {
+                if (!m_autoRefuel.Contains(character))
+                    m_autoRefuel.Add(character);
+                if (!m_jetpackRule.Contains(character))
                     m_jetpackRule.Add(character);
             }
         }
