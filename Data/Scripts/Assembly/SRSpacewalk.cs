@@ -362,11 +362,7 @@ namespace SurvivalReborn
                 // Duplicate must be removed and replaced to ensure the SRCharacterInfo is correct.
                 // There's a little extra overhead for completely replacing the SRCharacterInfo but this ensures a clean start in every case.
                 if (m_charinfos.ContainsKey(character))
-                {
-                    m_charinfos[character].Close();
-                    character.OnMarkForClose -= Untrack_Character;
-                    m_charinfos.Remove(character);
-                }
+                    m_charinfos[character].Close(); // Only need to close as the event handler does everything else
 
                 // Add to dictionary
                 var newCharacterInfo = new SRCharacterInfo(character);
@@ -388,9 +384,13 @@ namespace SurvivalReborn
                 // Add to collision enforcement list if not parented
                 if (character.Parent == null)
                     m_collisionRule.Add(character);
-                // Add to jetpack enforcement list if it has a valid jetpack in its definition
-                if (m_charinfos[character].FuelId != null && m_charinfos[character].OxygenComponent != null)
-                    m_jetpackRule.Add(character);
+                // Setup jetpack and refuel rules if character has a valid jetpack and inventory
+                if (newCharacterInfo.FuelId != null && newCharacterInfo.OxygenComponent != null && newCharacterInfo.Inventory != null)
+                {
+                    newCharacterInfo.BottleMoved += ScanInventory;
+                    // Initial inventory scan
+                    ScanInventory(character);
+                }
             }
         }
 
@@ -438,13 +438,14 @@ namespace SurvivalReborn
             IMyCharacter character = obj as IMyCharacter;
             if (character != null)
             {
+                character.OnMarkForClose -= Untrack_Character;
+                character.CharacterDied -= Untrack_Character;
+                m_charinfos[character].BottleMoved -= ScanInventory;
                 m_charinfos[character].Close();
                 m_charinfos.Remove(character);
                 m_collisionRule.Remove(character);
                 m_jetpackRule.Remove(character);
                 m_autoRefuel.Remove(character);
-                character.OnMarkForClose -= Untrack_Character;
-                character.CharacterDied -= Untrack_Character;
             }
             MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_charinfos.Count + " characters listed.");
         }
@@ -528,12 +529,14 @@ namespace SurvivalReborn
                     {
                         if (character.Physics.LinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared || characterInfo.lastLinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared)
                         {
-                            MyLog.Default.Error("SurvivalReborn: Linear acceleration calculations appear to have glitched out.");
+                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code HYPER. Submit a bug report.", 20000, "Red");
+                            MyLog.Default.Error("SurvivalReborn: Error code HYPER: Linear acceleration calculations appear to have glitched out.");
                             MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
                         if (character.Physics.LinearVelocity.LengthSquared() == 0f)
                         {
-                            MyLog.Default.Error("SurvivalReborn: Character's speed was set to zero and caused damage!");
+                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code STASIS. Submit a bug report.", 20000, "Red");
+                            MyLog.Default.Error("SurvivalReborn: Error code STASIS: Character's speed was set to zero and caused damage!");
                             MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
 
@@ -555,21 +558,8 @@ namespace SurvivalReborn
                 var character = m_jetpackRule[i];
                 var characterInfo = m_charinfos[character];
 
-                // TODO: Sanity-check these conditions on add to list instead, and remove these checks from update loop!
-                // OPTIMIZATION: Don't run refueling rule if there are no bottles in inventory.
-                // Sanity check: Don't run refueling rule if the fuel id or oxygencomponent is missing
-                if (characterInfo.InventoryBottles.Count == 0 || characterInfo.FuelId == null || characterInfo.OxygenComponent == null)
-                {
-                    m_jetpackRule.RemoveAt(i);
-                    continue;
-                }
-
-                // Check for gas falling below threshold and begin checking for illegal refuels immediately.
-                if (!characterInfo.GasLow && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION)
-                    characterInfo.GasLow = true;
-
-                // OPTIMIZATION: only check for illegal refuel if gas is low enough to trigger one.
-                if (characterInfo.GasLow)
+                // OPTIMIZATION: only check for illegal refuel if gas jumps from low to filled
+                if (characterInfo.GasLow && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
                 {
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
@@ -616,37 +606,30 @@ namespace SurvivalReborn
                             }
                         }
                     }
-
-                    // ONLY set gaslow false here. Otherwise, the illegal refill will prevent the check that's meant to find it.
-                    if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION)
-                        characterInfo.GasLow = false;
                 }
-                // OPTIMIZATION: If parented, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
-                else if (character.Parent != null)
+                // Correct state ensured by this point. Update GasLow control bit.
+                characterInfo.GasLow = (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) > MyCharacterOxygenComponent.GAS_REFILL_RATION);
+                // OPTIMIZATION: If parented and not low, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
+                if (character.Parent != null && !characterInfo.GasLow)
                     m_jetpackRule.RemoveAt(i);
             }
 
             // AUTO-REFUEL rule
             // No resync is needed as the server doesn't lie to clients about this part.
-            // TODO: If all bottles are emptied, disable this rule and the jetpack rule.
             for (int i = m_autoRefuel.Count - 1; i >= 0; i--)
             {
                 var character = m_autoRefuel[i];
                 var characterInfo = m_charinfos[character];
 
-                // Reset or decrement delay until refuel is allowed
+                // Reset cooldown if jetpack is on
                 if (character.EnabledThrusts)
-                {
                     characterInfo.RefuelDelay = JETPACK_COOLDOWN;
-                    continue;
-                }
+                // If refueling is delayed, tick down timer.
                 else if (characterInfo.RefuelDelay > 0f)
                     characterInfo.RefuelDelay -= MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
-
                 // If refueling is allowed, top-off from bottles.
-                if (characterInfo.RefuelDelay <= 0 && characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < 0.995f)
+                else if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < 0.995f)
                 {
-                    bool refueled = false;
                     // Fuel never appears to set all the way to 1.0
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
@@ -667,15 +650,7 @@ namespace SurvivalReborn
                         float newFuelLevel = fuelLevel + ((float)gasToTake / characterInfo.FuelCapacity); // parintheses for clarity only
                         characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, newFuelLevel);
 
-                        refueled = true;
                         break; // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
-                    }
-
-                    // OPTIMIZATION
-                    if (!refueled)
-                    {
-                        m_jetpackRule.Remove(character);
-                        m_autoRefuel.RemoveAt(i);
                     }
 
                     // Set timer for next refuel tick
