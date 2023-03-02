@@ -322,7 +322,7 @@ namespace SurvivalReborn
             }
 
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
-            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk development testing version.");
+            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate A for version 1.1.");
         }
 
         protected override void UnloadData()
@@ -616,11 +616,11 @@ namespace SurvivalReborn
                         }
                     }
                 }
+                // OPTIMIZATION: If parented and gas isn't low, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
+                else if (character.Parent != null)
+                    m_jetpackRule.RemoveAt(i);
                 // Delay check for GasLow to ensure an illegal refill doesn't disable the check meant to find it.
                 characterInfo.GasLow = (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION);
-                // OPTIMIZATION: If parented and not low, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
-                if (character.Parent != null && !characterInfo.GasLow)
-                    m_jetpackRule.RemoveAt(i);
             }
 
             // AUTO-REFUEL rule
