@@ -485,6 +485,7 @@ namespace SurvivalReborn
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
+            if (!MyAPIGateway.Session.IsServer) return;
 
             // COLLISION DAMAGE RULE
             for (int i = m_collisionRule.Count - 1; i >= 0; i--)
@@ -497,7 +498,8 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
-                if (MyAPIGateway.Session.IsServer && character.Parent == null)
+                //if (MyAPIGateway.Session.IsServer && character.Parent == null)
+                if (character.Parent == null)
                 {
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
@@ -540,7 +542,8 @@ namespace SurvivalReborn
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
-                else if (character.Parent != null)
+                //else if (character.Parent != null)
+                else
                 {
                     m_collisionRule.RemoveAt(i);
                     MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
@@ -641,6 +644,7 @@ namespace SurvivalReborn
                         // Calculate gas moved from this bottle
                         double fuelNeeded = characterInfo.FuelCapacity * (1.0f - characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
                         double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
                         var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
