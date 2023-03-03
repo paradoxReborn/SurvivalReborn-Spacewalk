@@ -335,6 +335,7 @@ namespace SurvivalReborn
                 if (newCharacterInfo != null && newCharacterInfo.valid)
                 {
                     m_charinfos.Add(character, newCharacterInfo);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_charinfos.Count + " characters in the dictionary.");
 
                     // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                     character.OnMarkForClose += Untrack_Character;
@@ -342,7 +343,10 @@ namespace SurvivalReborn
 
                     // Add to collision enforcement list if not parented
                     if (character.Parent == null)
+                    {
                         m_collisionRule.Add(character);
+                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                    }
                     // Setup jetpack and refuel rules if character has a valid jetpack and inventory
                     if (newCharacterInfo.FuelId != null && newCharacterInfo.OxygenComponent != null && newCharacterInfo.Inventory != null)
                     {
@@ -388,14 +392,22 @@ namespace SurvivalReborn
             if (InventoryBottles.Count > 0)
             {
                 if (!m_autoRefuel.Contains(character))
+                {
                     m_autoRefuel.Add(character);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                }
                 if (!m_jetpackRule.Contains(character))
+                {
                     m_jetpackRule.Add(character);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                }                  
             }
             else
             {
                 m_autoRefuel.Remove(character);
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 m_jetpackRule.Remove(character);
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
             }
 
             // MyAPIGateway.Utilities.ShowNotification("SurvivalReborn debug: Scanned inventory of " + character.DisplayName);
@@ -420,6 +432,10 @@ namespace SurvivalReborn
                 m_collisionRule.Remove(character);
                 m_jetpackRule.Remove(character);
                 m_autoRefuel.Remove(character);
+
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
             }
             //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_charinfos.Count + " characters listed.");
         }
@@ -525,7 +541,10 @@ namespace SurvivalReborn
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
                 else if (character.Parent != null)
+                {
                     m_collisionRule.RemoveAt(i);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                }
             }
 
             // JETPACK REFUELING RULE
@@ -588,7 +607,10 @@ namespace SurvivalReborn
                 }
                 // OPTIMIZATION: If parented and gas isn't low, the jetpack will not use any more fuel. Stop running this rule as the fuel will never get low.
                 else if (character.Parent != null)
+                {
                     m_jetpackRule.RemoveAt(i);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                }
                 // Delay check for GasLow to ensure an illegal refill doesn't disable the check meant to find it.
                 characterInfo.GasLow = gasLowThisTick;
             }
@@ -637,7 +659,10 @@ namespace SurvivalReborn
                 }
                 // OPTIMIZATION: Remove from list if parented and not in need of refuel
                 else if (character.Parent != null)
+                {
                     m_autoRefuel.RemoveAt(i);
+                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                }
             }
         }
     }
