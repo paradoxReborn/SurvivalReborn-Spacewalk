@@ -34,7 +34,6 @@ using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Utils;
 using VRageMath;
-using Sandbox.Game.Gui;
 
 namespace SurvivalReborn
 {
@@ -408,13 +407,12 @@ namespace SurvivalReborn
         /// <param name="obj"></param>
         private void Untrack_Character(IMyEntity obj)
         {
-            // Ensure this is a character. Ignore otherwise.
+            // Ignore non-characters; sanity-check characters to see if they're actually being tracked.
             IMyCharacter character = obj as IMyCharacter;
-            if (character != null)
+            if (character != null && m_charinfos.ContainsKey(character))
             {
                 character.OnMarkForClose -= Untrack_Character;
                 character.CharacterDied -= Untrack_Character;
-                MyLog.Default.Warning("SurvivalReborn: Tried to untrack a character that wasn't in m_charinfos");
                 m_charinfos[character].BottleMoved -= ScanInventory;
                 m_charinfos[character].Close();
                 m_charinfos.Remove(character);
@@ -462,8 +460,8 @@ namespace SurvivalReborn
             }
             catch (Exception ex)
             {
-                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION-A: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
-                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION-A: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
                 MyLog.Default.WriteLineAndConsole(ex.Message);
                 MyLog.Default.WriteLineAndConsole(ex.StackTrace);
             }
@@ -473,6 +471,7 @@ namespace SurvivalReborn
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
+            // Game rules only run on server
             if (!MyAPIGateway.Session.IsServer) return;
 
             // COLLISION DAMAGE RULE
