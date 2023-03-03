@@ -120,7 +120,6 @@ namespace SurvivalReborn
                 }
             }
 
-            // BUG: This function can throw a null reference exception
             public SRCharacterInfo(IMyCharacter character)
             {
                 if(character == null)
@@ -163,9 +162,7 @@ namespace SurvivalReborn
                         }
                     }
                 }
-                //else
-                    //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
-
+ 
                 Inventory = (MyInventory)character.GetInventory();
                 InventoryBottles = new List<SRInventoryBottle>();
                 OxygenComponent = character.Components?.Get<MyCharacterOxygenComponent>();
@@ -175,11 +172,6 @@ namespace SurvivalReborn
                 // Error checks and logging
                 if (Inventory != null)
                     Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
-                //else
-                    //MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory.");
-
-                //if (OxygenComponent == null)
-                    //MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component.");
 
                 // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
                 var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
@@ -258,8 +250,6 @@ namespace SurvivalReborn
 
             // Register desync fix
             MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(5064, ReceivedFuelLevel);
-            //MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(5065, ReceivedBottle);
-            // TODO: Register bottle sync
 
             // Fix character movement
             {
@@ -343,7 +333,7 @@ namespace SurvivalReborn
 
                     // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                     character.OnMarkForClose += Untrack_Character;
-                    character.CharacterDied += Untrack_Character; // Checking for death every tick no longer needed
+                    character.CharacterDied += Untrack_Character;
 
                     // Add to collision enforcement list if not parented
                     if (character.Parent == null)
@@ -358,8 +348,6 @@ namespace SurvivalReborn
                         // Initial inventory scan
                         ScanInventory(character);
                     }
-
-                    //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_charinfos.Count + " characters listed.");
                 }
                 else
                 {
@@ -391,7 +379,6 @@ namespace SurvivalReborn
                 if (characterInfo.CanRefuelFrom(item))
                     InventoryBottles.Add(new SRCharacterInfo.SRInventoryBottle(item));
             }
-            //MyAPIGateway.Utilities.ShowNotification("Scanned your inventory and found " + InventoryBottles.Count + " hydrogen tanks.");
 
             if (InventoryBottles.Count > 0)
             {
@@ -413,8 +400,6 @@ namespace SurvivalReborn
                 m_jetpackRule.Remove(character);
                 MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
             }
-
-            // MyAPIGateway.Utilities.ShowNotification("SurvivalReborn debug: Scanned inventory of " + character.DisplayName);
         }
 
         /// <summary>
@@ -441,7 +426,6 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
                 MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
             }
-            //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_charinfos.Count + " characters listed.");
         }
 
         /// <summary>
@@ -485,43 +469,7 @@ namespace SurvivalReborn
             }
         }
 
-        /*
-        private void ReceivedBottle(ushort handlerId, byte[] raw, ulong steamId, bool fromServer)
-        {
-            // Ignore any packets that aren't from the server.
-            if (!fromServer)
-                return;
-            // Ignore packet if the server somehow sends it to itself
-            if (!MyAPIGateway.Session.IsServer)
-                return;
-
-            MyLog.Default.WriteLine("SurvivalReborn: Received a bottle sync packet.");
-            try
-            {
-                SRBottleSyncPacket sync = MyAPIGateway.Utilities.SerializeFromBinary<SRBottleSyncPacket>(raw);
-                var character = MyEntities.GetEntityById(sync.EntityId) as IMyCharacter;
-                if (character != null)
-                {
-                    var bottleItem = m_charinfos[character].Inventory.GetItemByID(sync.ItemId);
-                    // Nullable type must be null-checked before explicit cast to prevent possible crash
-                    if (bottleItem != null)
-                    {
-                        var bottleItemReal = (MyPhysicalInventoryItem)bottleItem;
-                        var bottle = bottleItemReal.Content as MyObjectBuilder_GasContainerObject;
-                        bottle.GasLevel = sync.GasLevel;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION-B: Spacewalk may be experiencing a network channel collision with another mod on channel 5065. This may impact performance. Submit a bug report with a list of mods you are using.");
-                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION-B: Spacewalk may be experiencing a network channel collision with another mod on channel 5065. This may impact performance. Submit a bug report with a list of mods you are using.");
-                MyLog.Default.WriteLineAndConsole(ex.Message);
-                MyLog.Default.WriteLineAndConsole(ex.StackTrace);
-            }
-        }
-        */
-
+ 
         public override void UpdateBeforeSimulation()
         {
             base.UpdateBeforeSimulation();
@@ -538,7 +486,6 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
-                //if (MyAPIGateway.Session.IsServer && character.Parent == null)
                 if (character.Parent == null)
                 {
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
@@ -582,7 +529,6 @@ namespace SurvivalReborn
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
-                //else if (character.Parent != null)
                 else
                 {
                     m_collisionRule.RemoveAt(i);
@@ -625,25 +571,20 @@ namespace SurvivalReborn
                         var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                         badBottle.GasLevel = bottle.lastKnownFillLevel;
 
-                        //MyLog.Default.WriteLine("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
-
                         // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
-                        if (MyAPIGateway.Session.IsServer) //TODO: remove references to server because all rules run server-side now
+                        try
                         {
-                            try
-                            {
-                                MyLog.Default.WriteLine("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
-                                SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
-                                var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
-                                MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
-                            }
-                            catch (Exception e)
-                            {
-                                MyLog.Default.Error("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
-                                MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
-                                MyLog.Default.WriteLineAndConsole(e.Message);
-                                MyLog.Default.WriteLineAndConsole(e.StackTrace);
-                            }
+                            MyLog.Default.WriteLine("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
+                            SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
+                            var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
+                            MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
+                        }
+                        catch (Exception e)
+                        {
+                            MyLog.Default.Error("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
+                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
+                            MyLog.Default.WriteLineAndConsole(e.Message);
+                            MyLog.Default.WriteLineAndConsole(e.StackTrace);
                         }
                     }
                 }
@@ -653,7 +594,7 @@ namespace SurvivalReborn
                     m_jetpackRule.RemoveAt(i);
                     MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
                 }
-                // Delay check for GasLow to ensure an illegal refill doesn't disable the check meant to find it.
+                // Delayed check to ensure an illegal refill doesn't disable the check meant to find it.
                 characterInfo.GasLow = gasLowThisTick;
             }
 
@@ -695,23 +636,8 @@ namespace SurvivalReborn
 
                         // Sync bottle
                         characterInfo.Inventory.Refresh();
-                        /*
-                        try
-                        {
-                            MyLog.Default.WriteLine("Syncing a bottle in " + character.DisplayName + "'s inventory.");
-                            SRBottleSyncPacket sync = new SRBottleSyncPacket(character.EntityId, bottle.Item.ItemId, bottleItem.GasLevel);
-                            var packet = MyAPIGateway.Utilities.SerializeToBinary(sync);
-                            MyAPIGateway.Multiplayer.SendMessageToOthers(5065, packet);
-                        }
-                        catch (Exception e)
-                        {
-                            MyLog.Default.Error("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
-                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
-                            MyLog.Default.WriteLineAndConsole(e.Message);
-                            MyLog.Default.WriteLineAndConsole(e.StackTrace);
-                        }
-                        */
-                        break; // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
+                        // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
+                        break;
                     }
 
                     // Set timer for next refuel tick. Fuel flow is always per second so this is always one second.

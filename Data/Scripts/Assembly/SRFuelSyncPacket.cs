@@ -20,9 +20,6 @@
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
 
 using ProtoBuf;
-using Sandbox.ModAPI;
-using VRage;
-using VRage.Utils;
 
 namespace SurvivalReborn
 {
