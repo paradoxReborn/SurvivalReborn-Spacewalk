@@ -481,7 +481,7 @@ namespace SurvivalReborn
                 /// 2. When respawning
                 /// 3. On world load while moving and not in a seat
                 /// The character receives a microscopic nudge to trip this check as soon as physics are ready.
-                if (MyAPIGateway.Session.IsServer && character.Parent == null) //TODO: Any harm in running this on client too?
+                if (MyAPIGateway.Session.IsServer && character.Parent == null)
                 {
                     var accelSquared = (60 * (characterInfo.lastLinearVelocity - character.Physics.LinearVelocity)).LengthSquared();
 
@@ -537,7 +537,7 @@ namespace SurvivalReborn
                 var gasLowThisTick = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < MyCharacterOxygenComponent.GAS_REFILL_RATION;
 
                 // OPTIMIZATION: only check for illegal refuel if gas was low enough to cause one on this tick or the last one
-                // BUG: This doesn't account for an extremely rare edge case where a bottle was refilled and an illegal refill happens on the same tick that gas gets low.
+                // This doesn't account for an extremely rare edge case where a bottle was refilled by another mod and an illegal refill happens on the same tick that gas gets low.
                 if (characterInfo.GasLow || gasLowThisTick)
                 {
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
