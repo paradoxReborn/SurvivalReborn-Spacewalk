@@ -521,11 +521,11 @@ namespace SurvivalReborn
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
                     }
-                    else if (character.Parent != null)
-                        m_collisionRule.RemoveAt(i);
                     // Update lastLinearVelocity each tick
                     characterInfo.lastLinearVelocity = character.Physics.LinearVelocity;
                 }
+                else if (character.Parent != null)
+                    m_collisionRule.RemoveAt(i);
             }
 
             // JETPACK REFUELING RULE
