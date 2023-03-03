@@ -19,31 +19,43 @@
 ///    2. You must not represent your work as being part of the Survival Reborn series 
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using ProtoBuf;
 
 namespace SurvivalReborn
 {
     [ProtoContract]
-    public class SRFuelSyncPacket
+    public class SRBottleSyncPacket
     {
-        public SRFuelSyncPacket() { }
+        public SRBottleSyncPacket() { }
 
-        public SRFuelSyncPacket(long entityId, float fuelCorrection)
+        public SRBottleSyncPacket(long entityId, uint itemId, float fillLevel)
         {
             EntityId = entityId;
-            FuelAmount = fuelCorrection;
+            ItemId = itemId;
+            GasLevel = fillLevel;
         }
 
         /// <summary>
-        /// EntityId of the character to re-sync
+        /// EntityId of the character whose inventory contains the bottle
         /// </summary>
         [ProtoMember(1)]
         public readonly long EntityId;
 
         /// <summary>
-        /// Amount to be added or removed
+        /// ItemId of the bottle to sync
         /// </summary>
         [ProtoMember(2)]
-        public readonly float FuelAmount;
+        public readonly uint ItemId;
+
+        /// <summary>
+        /// Actual fill level of the bottle
+        /// </summary>
+        [ProtoMember(3)]
+        public readonly float GasLevel;
     }
 }
