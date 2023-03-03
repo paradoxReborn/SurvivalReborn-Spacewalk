@@ -276,9 +276,9 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
-            MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
+            //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
+            //MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
             //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn: Loaded Spacewalk Dev Testing version.", 60000);
         }
@@ -328,7 +328,7 @@ namespace SurvivalReborn
                 if (newCharacterInfo != null && newCharacterInfo.valid)
                 {
                     m_charinfos.Add(character, newCharacterInfo);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_charinfos.Count + " characters in the dictionary.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_charinfos.Count + " characters in the dictionary.");
 
                     // Prepare to remove character from list when it's removed from world (Remember to unbind this when the character's removed from dictionary)
                     character.OnMarkForClose += Untrack_Character;
@@ -338,7 +338,7 @@ namespace SurvivalReborn
                     if (character.Parent == null)
                     {
                         m_collisionRule.Add(character);
-                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                        //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
                     }
                     // Setup jetpack and refuel rules if character has a valid jetpack and inventory
                     if (newCharacterInfo.FuelId != null && newCharacterInfo.OxygenComponent != null && newCharacterInfo.Inventory != null)
@@ -384,20 +384,20 @@ namespace SurvivalReborn
                 if (!m_autoRefuel.Contains(character))
                 {
                     m_autoRefuel.Add(character);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 }
                 if (!m_jetpackRule.Contains(character))
                 {
                     m_jetpackRule.Add(character);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
                 }                  
             }
             else
             {
                 m_autoRefuel.Remove(character);
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 m_jetpackRule.Remove(character);
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
             }
         }
 
@@ -420,9 +420,9 @@ namespace SurvivalReborn
                 m_jetpackRule.Remove(character);
                 m_autoRefuel.Remove(character);
 
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
-                MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
             }
         }
 
@@ -531,7 +531,7 @@ namespace SurvivalReborn
                 else
                 {
                     m_collisionRule.RemoveAt(i);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
                 }
             }
 
@@ -591,7 +591,7 @@ namespace SurvivalReborn
                 else if (character.Parent != null)
                 {
                     m_jetpackRule.RemoveAt(i);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
                 }
                 // Delayed check to ensure an illegal refill doesn't disable the check meant to find it.
                 characterInfo.GasLow = gasLowThisTick;
@@ -622,7 +622,7 @@ namespace SurvivalReborn
                         // Calculate gas moved from this bottle
                         double fuelNeeded = characterInfo.FuelCapacity * (1.0f - characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
                         double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
-                        MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
+                        //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
                         var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
@@ -646,7 +646,7 @@ namespace SurvivalReborn
                 else if (character.Parent != null)
                 {
                     m_autoRefuel.RemoveAt(i);
-                    MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
+                    //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 }
             }
         }
