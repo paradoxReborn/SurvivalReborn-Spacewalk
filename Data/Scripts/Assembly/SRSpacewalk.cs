@@ -132,7 +132,7 @@ namespace SurvivalReborn
                 else
                 {
                     subject = character;
-                    MyLog.Default.WriteLine("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
+                    //MyLog.Default.WriteLine("SurvivalReborn: Running SRCharacterInfo constructor for character: " + character.Name);
                 }
 
                 var characterDef = character.Definition as MyCharacterDefinition;
@@ -162,8 +162,8 @@ namespace SurvivalReborn
                         }
                     }
                 }
-                else
-                    MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
+                //else
+                    //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " has no suit gas storage or jetpack fuel isn't defined. Skipping fuel subtype registration.");
 
                 Inventory = (MyInventory)character.GetInventory();
                 InventoryBottles = new List<SRInventoryBottle>();
@@ -174,11 +174,11 @@ namespace SurvivalReborn
                 // Error checks and logging
                 if (Inventory != null)
                     Inventory.InventoryContentChanged += Inventory_InventoryContentChanged;
-                else
-                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory.");
+                //else
+                    //MyLog.Default.WriteLine("SurvivalReborn: Character added with a null inventory.");
 
-                if (OxygenComponent == null)
-                    MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component.");
+                //if (OxygenComponent == null)
+                    //MyLog.Default.WriteLine("SurvivalReborn: Character added with a null Oxygen Component.");
 
                 // Set max speed according to Keen's algorithm in MyCharacter.UpdateCharacterPhysics() since I apparently can't access this value directly.
                 var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
@@ -284,8 +284,8 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
-            MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Release Candidate B for version 1.1.");
+            //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate B for version 1.1.");
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
             //MyAPIGateway.Utilities.ShowNotification("SurvivalReborn: Loaded Spacewalk Dev Testing version.", 60000);
         }
@@ -317,8 +317,8 @@ namespace SurvivalReborn
         {
             if (m_charinfos == null)
             {
-                MyAPIGateway.Utilities.ShowNotification("SurvivalReborn has encountered an error. Submit a bug report with your Space Engineers log.", 20000, "Red");
-                MyLog.Default.Error("SurvivalReborn: Attempted to add a character, but m_characters was null.");
+                MyLog.Default.Error("SurvivalReborn: Error code NULLIFICATION: Attempted to add a character, but m_characters was null.");
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: Error code NULLIFICATION. Please submit a bug report with your server logs.");
                 return;
             }
             IMyCharacter character = obj as IMyCharacter;
@@ -351,7 +351,7 @@ namespace SurvivalReborn
                         ScanInventory(character);
                     }
 
-                    MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_charinfos.Count + " characters listed.");
+                    //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " added to world. There are now " + m_charinfos.Count + " characters listed.");
                 }
                 else
                 {
@@ -421,7 +421,7 @@ namespace SurvivalReborn
                 m_jetpackRule.Remove(character);
                 m_autoRefuel.Remove(character);
             }
-            MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_charinfos.Count + " characters listed.");
+            //MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " marked for close. There are now " + m_charinfos.Count + " characters listed.");
         }
 
         /// <summary>
@@ -458,8 +458,8 @@ namespace SurvivalReborn
             }
             catch (Exception ex)
             {
-                MyLog.Default.WriteLineToConsole("Survival Reborn: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
-                MyLog.Default.Error("Survival Reborn: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
                 MyLog.Default.WriteLineAndConsole(ex.Message);
                 MyLog.Default.WriteLineAndConsole(ex.StackTrace);
             }
@@ -503,15 +503,17 @@ namespace SurvivalReborn
                     {
                         if (character.Physics.LinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared || characterInfo.lastLinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared)
                         {
-                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code HYPER. Submit a bug report.", 20000, "Red");
-                            MyLog.Default.Error("SurvivalReborn: Error code HYPER: Linear acceleration calculations appear to have glitched out.");
-                            MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code OVERSPEED. Submit a bug report.", 20000, "Red");
+                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code OVERSPEED: Linear acceleration calculations appear to have glitched out.");
+                            MyLog.Default.Error("SurvivalReborn: Error code OVERSPEED: Linear acceleration calculations appear to have glitched out.");
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
                         if (character.Physics.LinearVelocity.LengthSquared() == 0f)
                         {
                             MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code STASIS. Submit a bug report.", 20000, "Red");
+                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code STASIS: Character's speed was set to zero and caused damage!");
                             MyLog.Default.Error("SurvivalReborn: Error code STASIS: Character's speed was set to zero and caused damage!");
-                            MyLog.Default.Error("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
+                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
                         }
 
                         // We definitely crashed into something.
@@ -561,7 +563,7 @@ namespace SurvivalReborn
                         var badBottle = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                         badBottle.GasLevel = bottle.lastKnownFillLevel;
 
-                        MyLog.Default.WriteLine("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
+                        //MyLog.Default.WriteLine("SurvivalReborn: Corrected a disallowed jetpack refuel for " + character.DisplayName);
 
                         // From the server, send a correction packet to prevent desync when the server lies to the client about jetpack getting refueled.
                         if (MyAPIGateway.Session.IsServer)
@@ -576,7 +578,8 @@ namespace SurvivalReborn
                             }
                             catch (Exception e)
                             {
-                                MyLog.Default.Error("SurvivalReborn: Server errored out while trying to send a packet. Submit a bug report.");
+                                MyLog.Default.Error("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
+                                MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code DEFLECTION: Server errored out while trying to send a packet. Submit a bug report.");
                                 MyLog.Default.WriteLineAndConsole(e.Message);
                                 MyLog.Default.WriteLineAndConsole(e.StackTrace);
                             }
