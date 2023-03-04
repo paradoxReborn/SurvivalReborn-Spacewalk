@@ -235,7 +235,7 @@ namespace SurvivalReborn
         const float DAMAGE_PER_MSS = 0.03f;
 
         // Delay to refuel jetpack in seconds from the time it shuts off
-        const float JETPACK_COOLDOWN = 3.5f;
+        const float JETPACK_COOLDOWN = 3f;
 
         // Defaults to restore on world close
         private float m_defaultCharacterGravity;
@@ -639,9 +639,9 @@ namespace SurvivalReborn
                         if (bottle.currentFillLevel <= 0f)
                             continue;
 
-                        // Calculate gas moved from this bottle (note that fuel flow is in gas/sec)
+                        // Calculate gas moved from this bottle (note that fuel flow appears to be in gas/2sec)
                         double fuelNeeded = characterInfo.FuelCapacity * (1.0f - fuelLevel);
-                        double gasToTake = Math.Min(characterInfo.FuelThroughput * 2f, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                        double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
                         //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
@@ -658,7 +658,7 @@ namespace SurvivalReborn
                         break;
                     }
 
-                    characterInfo.RefuelDelay = 2f; // Always 2s to match Vanilla
+                    characterInfo.RefuelDelay = 2f; // Always 2s to match Vanilla behaviors
                     characterInfo.LastFuelLevel = fuelLevel;
                 }
                 // OPTIMIZATION: Remove from list if parented and not in need of refuel
