@@ -634,7 +634,7 @@ namespace SurvivalReborn
                         characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, newFuelLevel);
 
                         // Sync bottle
-                        characterInfo.Inventory.Refresh();
+                        characterInfo.Inventory.OnContentsChanged();
                         // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
                         break;
                     }
