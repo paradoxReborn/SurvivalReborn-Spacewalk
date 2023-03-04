@@ -18,6 +18,8 @@
 ///    1. You may not claim affiliation with Survival Reborn or its author.
 ///    2. You must not represent your work as being part of the Survival Reborn series 
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
+///    3. Permission is granted to publish modified versions of files in this program 
+///    bearing the .sbc file extension without licensing them under GPL.
 
 using ProtoBuf;
 

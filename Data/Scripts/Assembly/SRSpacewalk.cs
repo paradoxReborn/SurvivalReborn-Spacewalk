@@ -18,6 +18,8 @@
 ///    1. You may not claim affiliation with Survival Reborn or its author.
 ///    2. You must not represent your work as being part of the Survival Reborn series 
 ///    or use the Survival Reborn name or imagery in any misleading or deceptive way.
+///    3. Permission is granted to publish modified versions of files in this program 
+///    bearing the .sbc file extension without licensing them under GPL.
 
 using System;
 using System.Collections.Generic;
@@ -278,7 +280,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.1.");
             //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
