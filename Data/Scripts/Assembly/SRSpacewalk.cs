@@ -624,7 +624,7 @@ namespace SurvivalReborn
                 // Don't refuel if already refueled in the last second or since jetpack powered off.
                 if (fuelLevel > characterInfo.LastFuelLevel)
                 {
-                    characterInfo.RefuelDelay = 2f; // Always 2s to match vanilla
+                    characterInfo.RefuelDelay = 1.5f; // Always 1.5s to match vanilla
                     characterInfo.LastFuelLevel = fuelLevel;
                     continue;
                 }
@@ -639,9 +639,9 @@ namespace SurvivalReborn
                         if (bottle.currentFillLevel <= 0f)
                             continue;
 
-                        // Calculate gas moved from this bottle (note that fuel flow appears to be in gas/2sec)
+                        // Calculate gas moved from this bottle (note that fuel flow appears to be in gas/sec)
                         double fuelNeeded = characterInfo.FuelCapacity * (1.0f - fuelLevel);
-                        double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                        double gasToTake = Math.Min(characterInfo.FuelThroughput * 1.5, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
                         //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
@@ -658,7 +658,7 @@ namespace SurvivalReborn
                         break;
                     }
 
-                    characterInfo.RefuelDelay = 2f; // Always 2s to match Vanilla behaviors
+                    characterInfo.RefuelDelay = 1.5f; // Always 1.5s to match Vanilla behaviors
                     characterInfo.LastFuelLevel = fuelLevel;
                 }
                 // OPTIMIZATION: Remove from list if parented and not in need of refuel
