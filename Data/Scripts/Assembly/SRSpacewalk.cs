@@ -96,6 +96,8 @@ namespace SurvivalReborn
             public bool GasLow;
             // Seconds until jetpack is allowed to refuel
             public float RefuelDelay;
+            // Fuel level on the last tick used for controlling some mechanics
+            public float LastFuelLevel;
 
             // Event for a fuel bottle getting moved around in inventory
             public delegate void BottleMovedHandler(IMyCharacter character);
@@ -231,7 +233,7 @@ namespace SurvivalReborn
         const float DAMAGE_PER_MSS = 0.03f;
 
         // Delay to refuel jetpack in seconds from the time it shuts off
-        const float JETPACK_COOLDOWN = 2.5f;
+        const float JETPACK_COOLDOWN = 3.5f;
 
         // Defaults to restore on world close
         private float m_defaultCharacterGravity;
@@ -602,45 +604,60 @@ namespace SurvivalReborn
             {
                 var character = m_autoRefuel[i];
                 var characterInfo = m_charinfos[character];
+                var fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
 
-                // Reset cooldown if jetpack is on
+                // Reset cooldown and fuel check if jetpack is on
                 if (character.EnabledThrusts)
-                    characterInfo.RefuelDelay = JETPACK_COOLDOWN;
-                // If refueling is delayed, tick down timer.
-                else if (characterInfo.RefuelDelay > 0f)
-                    characterInfo.RefuelDelay -= MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
-                // If refueling is allowed, top-off from bottles.
-                else if (characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId) < 0.995f)
                 {
-                    // Fuel never appears to set all the way to 1.0
+                    characterInfo.RefuelDelay = JETPACK_COOLDOWN;
+                    characterInfo.LastFuelLevel = fuelLevel;
+                    continue;
+                }
+
+                // Wait out delay before repeating other checks
+                characterInfo.RefuelDelay -= MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+                if (characterInfo.RefuelDelay > 0f)
+                    continue;
+
+                // Don't refuel if already refueled in the last second or since jetpack powered off.
+                if (fuelLevel > characterInfo.LastFuelLevel)
+                {
+                    characterInfo.RefuelDelay = 2f; // Always 2s to match vanilla
+                    characterInfo.LastFuelLevel = fuelLevel;
+                    continue;
+                }
+
+                // If refueling is allowed, top-off from bottles.
+                // Fuel never appears to set all the way to 1.0 for some reason so use < 0.995f
+                if (fuelLevel < 0.995f)
+                {
                     foreach (SRCharacterInfo.SRInventoryBottle bottle in characterInfo.InventoryBottles)
                     {
                         // Skip empty bottles
                         if (bottle.currentFillLevel <= 0f)
                             continue;
 
-                        // Calculate gas moved from this bottle
-                        double fuelNeeded = characterInfo.FuelCapacity * (1.0f - characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId));
-                        double gasToTake = Math.Min(characterInfo.FuelThroughput, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                        // Calculate gas moved from this bottle (note that fuel flow is in gas/sec)
+                        double fuelNeeded = characterInfo.FuelCapacity * (1.0f - fuelLevel);
+                        double gasToTake = Math.Min(characterInfo.FuelThroughput * 2f, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
                         //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
                         var bottleItem = bottle.Item.Content as MyObjectBuilder_GasContainerObject;
                         bottleItem.GasLevel -= (float)gasToTake / bottle.capacity;
                         bottle.lastKnownFillLevel = bottleItem.GasLevel;
-
-                        float fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
                         float newFuelLevel = fuelLevel + ((float)gasToTake / characterInfo.FuelCapacity); // parintheses for clarity only
                         characterInfo.OxygenComponent.UpdateStoredGasLevel(ref characterInfo.FuelId, newFuelLevel);
 
                         // Sync bottle
                         characterInfo.Inventory.Refresh();
                         // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
+                        MyAPIGateway.Utilities.ShowNotification("Debug: Filled jetpack from bottle.");
                         break;
                     }
 
-                    // Set timer for next refuel tick. Fuel flow is always per second so this is always one second.
-                    characterInfo.RefuelDelay = 1f;
+                    characterInfo.RefuelDelay = 2f; // Always 2s to match Vanilla
+                    characterInfo.LastFuelLevel = fuelLevel;
                 }
                 // OPTIMIZATION: Remove from list if parented and not in need of refuel
                 else if (character.Parent != null)
@@ -648,6 +665,8 @@ namespace SurvivalReborn
                     m_autoRefuel.RemoveAt(i);
                     //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 }
+                // Update last fuel level
+                characterInfo.LastFuelLevel = fuelLevel;
             }
         }
     }
