@@ -654,7 +654,7 @@ namespace SurvivalReborn
                         // Sync bottle
                         characterInfo.Inventory.OnContentsChanged();
                         // Only refill from one bottle per tick. May cause a small tick when switching fuel feeds but that's okay.
-                        MyAPIGateway.Utilities.ShowNotification("Debug: Filled jetpack from bottle.");
+                        //MyAPIGateway.Utilities.ShowNotification("Debug: Filled jetpack from bottle.");
                         break;
                     }
 

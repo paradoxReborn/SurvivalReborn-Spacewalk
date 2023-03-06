@@ -123,6 +123,14 @@
 					<MaxCapacity>40</MaxCapacity>
 					<Throughput>5</Throughput>
 				</Resource>
+				<Resource>
+					<Id>
+						<TypeId>GasProperties</TypeId>
+						<SubtypeId>Water</SubtypeId>
+					</Id>
+					<MaxCapacity>40</MaxCapacity>
+					<Throughput>5</Throughput>
+				</Resource>
 			</SuitResourceStorage>
 
 			<SuitConsumptionInTemperatureExtreme>0.1</SuitConsumptionInTemperatureExtreme>
@@ -563,6 +571,14 @@
 					<Id>
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Oxygen</SubtypeId>
+					</Id>
+					<MaxCapacity>40</MaxCapacity>
+					<Throughput>5</Throughput>
+				</Resource>
+				<Resource>
+					<Id>
+						<TypeId>GasProperties</TypeId>
+						<SubtypeId>Water</SubtypeId>
 					</Id>
 					<MaxCapacity>40</MaxCapacity>
 					<Throughput>5</Throughput>
