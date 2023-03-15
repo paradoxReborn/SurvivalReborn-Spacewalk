@@ -36,6 +36,7 @@ using Sandbox.Game.Entities;
 using Sandbox.ModAPI;
 using VRage.Utils;
 using VRageMath;
+using Sandbox;
 
 namespace SurvivalReborn
 {
@@ -74,10 +75,6 @@ namespace SurvivalReborn
             /// VALUES FOR COLLISION DAMAGE RULE
             // If disabled, will skip checking for collision damage until enabled
             public bool CollisionDamageEnabled;
-            // Character's max movement speed
-            public float MaxSpeed;
-            // Max speed squared for optimized checks
-            public float MaxSpeedSquared;
             // Linear velocity from the tick before collision damage was tripped
             public Vector3 lastLinearVelocity;
 
@@ -180,8 +177,8 @@ namespace SurvivalReborn
                 var maxShipSpeed = Math.Max(MyDefinitionManager.Static.EnvironmentDefinition.LargeShipMaxSpeed, MyDefinitionManager.Static.EnvironmentDefinition.SmallShipMaxSpeed);
                 var maxDudeSpeed = Math.Max(characterDef.MaxSprintSpeed,
                     Math.Max(characterDef.MaxRunSpeed, characterDef.MaxBackrunSpeed));
-                MaxSpeed = maxShipSpeed + maxDudeSpeed;
-                MaxSpeedSquared = MaxSpeed * MaxSpeed;
+                //MaxSpeed = maxShipSpeed + maxDudeSpeed;
+                //MaxSpeedSquared = MaxSpeed * MaxSpeed;
             }
 
             /// <summary>
@@ -503,28 +500,10 @@ namespace SurvivalReborn
                             MyLog.Default.WriteLine("SurvivalReborn: " + character.DisplayName + " moved. Collision damage enabled.");
                         }
                     }
-                    // Trip collision damage on high G-force, but ignore if linear velocity is impossibly high
-                    else if (accelSquared > DAMAGE_THRESHOLD_SQ)
-                    //&& character.Physics.LinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared
-                    //&& characterInfo.lastLinearVelocity.LengthSquared() < characterInfo.MaxSpeedSquared
-                    //&& character.Physics.LinearVelocity.LengthSquared() != 0f
+                    // Trip collision damage on high G-force
+                    // Ignore if character's velocity has been set to exactly zero by another mod - this will not happen naturally in collisions.
+                    else if (accelSquared > DAMAGE_THRESHOLD_SQ && character.Physics.LinearVelocity.LengthSquared() != 0f)
                     {
-                        if (character.Physics.LinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared || characterInfo.lastLinearVelocity.LengthSquared() > characterInfo.MaxSpeedSquared)
-                        {
-                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code OVERSPEED. Submit a bug report.", 20000, "Red");
-                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code OVERSPEED: Linear acceleration calculations appear to have glitched out.");
-                            MyLog.Default.Error("SurvivalReborn: Error code OVERSPEED: Linear acceleration calculations appear to have glitched out.");
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
-                        }
-                        if (character.Physics.LinearVelocity.LengthSquared() == 0f)
-                        {
-                            MyAPIGateway.Utilities.ShowNotification("SR:Spacewalk error code STASIS. Submit a bug report.", 20000, "Red");
-                            MyLog.Default.WriteLineToConsole("SurvivalReborn: Error code STASIS: Character's speed was set to zero and caused damage!");
-                            MyLog.Default.Error("SurvivalReborn: Error code STASIS: Character's speed was set to zero and caused damage!");
-                            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Send a bug report and tell the developer what you were doing at the time the unexpected damage spike occurred!");
-                        }
-
-                        // We definitely crashed into something.
                         float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
