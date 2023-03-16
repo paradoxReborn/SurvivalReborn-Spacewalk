@@ -277,7 +277,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.1.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.3.");
             //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
