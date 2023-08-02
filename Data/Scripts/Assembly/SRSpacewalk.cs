@@ -228,15 +228,6 @@ namespace SurvivalReborn
         List<IMyCharacter> m_jetpackRule = new List<IMyCharacter>();
         List<IMyCharacter> m_autoRefuel = new List<IMyCharacter>();
 
-        // Game rules for fall damage - settings are in m/s/s
-        const float DAMAGE_THRESHOLD = 750f;
-        const float DAMAGE_THRESHOLD_SQ = 562500f;
-        const float IGNORE_ABOVE = 1500f; // Should be roughly where vanilla damage starts
-        const float DAMAGE_PER_MSS = 0.03f;
-
-        // Delay to refuel jetpack in seconds from the time it shuts off
-        const float JETPACK_COOLDOWN = 3f;
-
         // Defaults to restore on world close
         private float m_defaultCharacterGravity;
         private float m_defaultWalkAcceleration;
@@ -244,10 +235,16 @@ namespace SurvivalReborn
         private float m_defaultSprintAcceleration;
         private float m_defaultSprintDeceleration;
 
+        // optmization so we don't have to square this every tick
+        private float m_damageThresholdSq;
+
         public override void LoadData()
         {
             // Load config
             config.Load();
+
+            // optmization so we don't have to square this every tick
+            m_damageThresholdSq = (float)Math.Pow(config.CollisionDamageThreshold, 2);
 
             // Hook entity create and add for character list
             MyEntities.OnEntityCreate += TrackCharacter;
@@ -511,9 +508,9 @@ namespace SurvivalReborn
                     }
                     // Trip collision damage on high G-force
                     // Ignore if character's velocity has been set to exactly zero by another mod - this will not happen naturally in collisions.
-                    else if (accelSquared > DAMAGE_THRESHOLD_SQ && character.Physics.LinearVelocity.LengthSquared() != 0f)
+                    else if (accelSquared > m_damageThresholdSq && character.Physics.LinearVelocity.LengthSquared() != 0f)
                     {
-                        float damage = DAMAGE_PER_MSS * Math.Max(0, (Math.Min(IGNORE_ABOVE, (float)Math.Sqrt(accelSquared)) - DAMAGE_THRESHOLD));
+                        float damage = config.CollisionDamagePerMSS * Math.Max(0, (Math.Min(config.CollisionDamageCutoff, (float)Math.Sqrt(accelSquared)) - config.CollisionDamageThreshold));
                         character.DoDamage(damage, MyStringHash.GetOrCompute("Environment"), true);
                         MyLog.Default.WriteLine("SurvivalReborn:" + character.DisplayName + " took " + damage + " collision damage from SR:Spacewalk game rules.");
                     }
@@ -599,7 +596,7 @@ namespace SurvivalReborn
                 // Reset cooldown and fuel check if jetpack is on
                 if (character.EnabledThrusts)
                 {
-                    characterInfo.RefuelDelay = JETPACK_COOLDOWN;
+                    characterInfo.RefuelDelay = config.JetpackCooldown;
                     characterInfo.LastFuelLevel = fuelLevel;
                     continue;
                 }
@@ -612,7 +609,7 @@ namespace SurvivalReborn
                 // Don't refuel if already refueled in the last second or since jetpack powered off.
                 if (fuelLevel > characterInfo.LastFuelLevel)
                 {
-                    characterInfo.RefuelDelay = 1.5f; // Always 1.5s to match vanilla
+                    characterInfo.RefuelDelay = 1.5f; // Always 1.5s to match vanilla. Hardcoded for a reason.
                     characterInfo.LastFuelLevel = fuelLevel;
                     continue;
                 }
