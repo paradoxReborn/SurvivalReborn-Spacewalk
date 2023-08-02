@@ -85,7 +85,7 @@ namespace SurvivalReborn
         {
             if (!MyAPIGateway.Utilities.FileExistsInWorldStorage(CONFIG_FILENAME, typeof(SRSpacewalkSettings)))
             {
-                MyLog.Default.WriteLine("SurvivalReborn: Spacewalk config does not exist yet. Defaults will be used and a config file will be created.");
+                MyLog.Default.WriteLineAndConsole("SurvivalReborn: Spacewalk config does not exist yet. Defaults will be used and a config file will be created.");
                 return;
             }
 
@@ -123,6 +123,7 @@ namespace SurvivalReborn
             if (rawText == null || rawText == "")
             {
                 MyLog.Default.Warning("Survival Reborn: Empty config file loaded. A new default config will be created.");
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Empty config file loaded. A new default config will be created.");
                 return;
             }
 
@@ -134,6 +135,7 @@ namespace SurvivalReborn
             {
 
                 MyLog.Default.Warning("Survival Reborn: Invalid or corrupt config. A new default config will be created.");
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Invalid or corrupt config. A new default config will be created.");
                 return;
             }
 
