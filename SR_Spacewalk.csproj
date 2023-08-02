@@ -107,6 +107,7 @@
   <ItemGroup>
     <Compile Include="Data\Scripts\Assembly\SRFuelSyncPacket.cs" />
     <Compile Include="Data\Scripts\Assembly\SRSpacewalk.cs" />
+    <Compile Include="Data\Scripts\Assembly\SRSpacewalkSettings.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
