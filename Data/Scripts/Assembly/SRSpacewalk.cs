@@ -218,6 +218,9 @@ namespace SurvivalReborn
             }
         }
 
+        // Config for the mod
+        SRSpacewalkSettings config = new SRSpacewalkSettings();
+
         // List of characters to apply game rules to
         Dictionary<IMyCharacter, SRCharacterInfo> m_charinfos = new Dictionary<IMyCharacter, SRCharacterInfo>();
         // List of characters to remove from m_characters this tick
@@ -243,16 +246,19 @@ namespace SurvivalReborn
 
         public override void LoadData()
         {
+            // Load config
+            config.Load();
+
             // Hook entity create and add for character list
             MyEntities.OnEntityCreate += TrackCharacter;
             // Tracking OnEntityAdd catches certain edge cases like changing characters in medical room.
             MyEntities.OnEntityAdd += TrackCharacter;
 
             // Register desync fix
-            MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(5064, ReceivedFuelLevel);
+            MyAPIGateway.Multiplayer.RegisterSecureMessageHandler(config.SecureMessageChannel, ReceivedFuelLevel);
 
-            // Fix character movement
-            {
+            // Fix character movement if enabled
+            if (config.CharacterMovementTweaks){
                 // Remember defaults
                 m_defaultCharacterGravity = MyPerGameSettings.CharacterGravityMultiplier;
                 m_defaultWalkAcceleration = MyPerGameSettings.CharacterMovement.WalkAcceleration;
@@ -261,13 +267,13 @@ namespace SurvivalReborn
                 m_defaultSprintDeceleration = MyPerGameSettings.CharacterMovement.SprintDecceleration;
 
                 // Fix supergravity
-                MyPerGameSettings.CharacterGravityMultiplier = 1f;
+                MyPerGameSettings.CharacterGravityMultiplier = config.CharacterGravityMultiplier;
 
                 // Fix jerky character movement
-                MyPerGameSettings.CharacterMovement.WalkAcceleration = 13.5f;
-                MyPerGameSettings.CharacterMovement.WalkDecceleration = 100f;
-                MyPerGameSettings.CharacterMovement.SprintAcceleration = 15f;
-                MyPerGameSettings.CharacterMovement.SprintDecceleration = 100f;
+                MyPerGameSettings.CharacterMovement.WalkAcceleration = config.WalkAcceleration;
+                MyPerGameSettings.CharacterMovement.WalkDecceleration = config.WalkDecceleration;
+                MyPerGameSettings.CharacterMovement.SprintAcceleration = config.SprintAcceleration;
+                MyPerGameSettings.CharacterMovement.SprintDecceleration = config.SprintDecceleration;
 
                 //Log settings
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterMovement.SprintAcceleration set to: " + MyPerGameSettings.CharacterMovement.SprintAcceleration);
@@ -277,7 +283,8 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.3.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Dev branch.");
+            //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.3.");
             //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyLog.Default.WriteLine("SurvivalReborn: Loaded Spacewalk Dev Testing Version.");
@@ -291,17 +298,19 @@ namespace SurvivalReborn
             MyEntities.OnEntityCreate -= TrackCharacter;
 
             // Unregister desync fix
-            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(5064, ReceivedFuelLevel);
+            MyAPIGateway.Multiplayer.UnregisterSecureMessageHandler(config.SecureMessageChannel, ReceivedFuelLevel);
 
             // Restore all defaults - Don't leave a mess if the mod is removed later.
-            MyPerGameSettings.CharacterGravityMultiplier = m_defaultCharacterGravity;
-            MyPerGameSettings.CharacterMovement.WalkAcceleration = m_defaultWalkAcceleration;
-            MyPerGameSettings.CharacterMovement.WalkDecceleration = m_defaultWalkDeceleration;
-            MyPerGameSettings.CharacterMovement.SprintAcceleration = m_defaultSprintAcceleration;
-            MyPerGameSettings.CharacterMovement.SprintDecceleration = m_defaultSprintDeceleration;
+            if (config.CharacterMovementTweaks)
+            {
+                MyPerGameSettings.CharacterGravityMultiplier = m_defaultCharacterGravity;
+                MyPerGameSettings.CharacterMovement.WalkAcceleration = m_defaultWalkAcceleration;
+                MyPerGameSettings.CharacterMovement.WalkDecceleration = m_defaultWalkDeceleration;
+                MyPerGameSettings.CharacterMovement.SprintAcceleration = m_defaultSprintAcceleration;
+                MyPerGameSettings.CharacterMovement.SprintDecceleration = m_defaultSprintDeceleration;
 
-            //Log
-            MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings returned to defaults.");
+                MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings returned to defaults.");
+            }
         }
 
         /// <summary>
@@ -336,7 +345,7 @@ namespace SurvivalReborn
                     character.CharacterDied += Untrack_Character;
 
                     // Add to collision enforcement list if not parented
-                    if (character.Parent == null)
+                    if (config.CollisionTweaks && character.Parent == null)
                     {
                         m_collisionRule.Add(character);
                         //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_collisionRule.Count + " characters in the collision list.");
@@ -382,12 +391,12 @@ namespace SurvivalReborn
 
             if (InventoryBottles.Count > 0)
             {
-                if (!m_autoRefuel.Contains(character))
+                if (config.JetpackTopoff && !m_autoRefuel.Contains(character))
                 {
                     m_autoRefuel.Add(character);
                     //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_autoRefuel.Count + " characters in the Refuel list.");
                 }
-                if (!m_jetpackRule.Contains(character))
+                if (config.JetpackNerf && !m_jetpackRule.Contains(character))
                 {
                     m_jetpackRule.Add(character);
                     //MyLog.Default.WriteLineAndConsole("SurvivalReborn: There are " + m_jetpackRule.Count + " characters in the Jetpack list.");
@@ -461,8 +470,8 @@ namespace SurvivalReborn
             }
             catch (Exception ex)
             {
-                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
-                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod on channel 5064. This may impact performance. Submit a bug report with a list of mods you are using.");
+                MyLog.Default.WriteLineToConsole("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod. This may impact performance. Try changing SecureMessageChannel in the config file.");
+                MyLog.Default.Error("Survival Reborn: Error code EXCLUSION: Spacewalk may be experiencing a network channel collision with another mod. This may impact performance. Try changing SecureMessageChannel in the config file.");
                 MyLog.Default.WriteLineAndConsole(ex.Message);
                 MyLog.Default.WriteLineAndConsole(ex.StackTrace);
             }
@@ -559,7 +568,7 @@ namespace SurvivalReborn
                             MyLog.Default.WriteLine("SurvivalReborn: Syncing fuel level for " + character.DisplayName);
                             SRFuelSyncPacket correction = new SRFuelSyncPacket(character.EntityId, gasToRemove);
                             var packet = MyAPIGateway.Utilities.SerializeToBinary(correction);
-                            MyAPIGateway.Multiplayer.SendMessageToOthers(5064, packet);
+                            MyAPIGateway.Multiplayer.SendMessageToOthers(config.SecureMessageChannel, packet);
                         }
                         catch (Exception e)
                         {
