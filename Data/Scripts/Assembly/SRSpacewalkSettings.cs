@@ -21,14 +21,8 @@
 ///    3. Permission is granted to publish modified versions of files in this program 
 ///    bearing the .sbc file extension without licensing them under GPL.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using Sandbox.ModAPI;
-using VRage.Game.Components;
 using VRage.Game.ModAPI.Ingame.Utilities;
 using VRage.Utils;
 
@@ -64,8 +58,6 @@ namespace SurvivalReborn
         public float SprintDecceleration = 100f;
         // CONFIG ITEMS: Troubleshooting
         public ushort SecureMessageChannel = 5064;
-
-        // TODO: include adjustment for collision tweak numbers
 
         /// <summary>
         /// Should always be called once when the mod first loads
@@ -126,12 +118,11 @@ namespace SurvivalReborn
         /// <summary>
         /// Read settings from a given text string
         /// </summary>
-        private void ReadSettings(string rawText)
+        private bool ReadSettings(string rawText)
         {
-            if (rawText == null)
+            if (rawText == null || rawText == "")
             {
-                // TODO: Ignore the cfg file if it's empty and prompt the admin/user to delete/recreate it
-                MyLog.Default.Warning("Survival Reborn: Empty config file loaded. Defaults will be used and the config will be overwritten.");
+                MyLog.Default.Warning("Survival Reborn: Empty config file loaded. A new default config will be created.");
                 return;
             }
 
