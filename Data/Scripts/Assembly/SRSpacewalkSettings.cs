@@ -118,7 +118,7 @@ namespace SurvivalReborn
         /// <summary>
         /// Read settings from a given text string
         /// </summary>
-        private bool ReadSettings(string rawText)
+        private void ReadSettings(string rawText)
         {
             if (rawText == null || rawText == "")
             {
@@ -132,8 +132,8 @@ namespace SurvivalReborn
             
             if (!success)
             {
-                // TODO: Ignore the cfg file if it's empty and prompt the admin/user to delete/recreate it
-                MyLog.Default.Warning("Survival Reborn: Invalid or corrupt config. Defaults will be used and the config will be overwritten.");
+
+                MyLog.Default.Warning("Survival Reborn: Invalid or corrupt config. A new default config will be created.");
                 return;
             }
 
