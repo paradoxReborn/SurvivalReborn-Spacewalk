@@ -107,8 +107,8 @@ namespace SurvivalReborn
             string raw;
             if (!MyAPIGateway.Utilities.GetVariable<string>(VARIABLE_ID, out raw))
             {
-                // TODO: Better warning?
-                MyLog.Default.Warning("Survival Reborn: Spacewalk was unable to load configs from the server. Defaults will be used on client. Contact your server administrator.");
+                MyAPIGateway.Utilities.ShowNotification("SurvivalReborn: Error code DISSONANCE-SPACEWALK. Contact your server administrator.", 30000, "Red");
+                MyLog.Default.Error("SurvivalReborn: Error code DISSONANCE-SPACEWALK: Spacewalk was unable to load configs from the server. Defaults will be used on client. Contact your server administrator.");
                 return;
             }
 
