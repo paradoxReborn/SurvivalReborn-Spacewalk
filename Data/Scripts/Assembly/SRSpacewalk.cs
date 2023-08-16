@@ -85,6 +85,8 @@ namespace SurvivalReborn
             public List<SRInventoryBottle> InventoryBottles;
             // Character's oxygencomponent stores hydrogen, oxygen, etc.
             public MyCharacterOxygenComponent OxygenComponent;
+            // Character's jetpack component. Allows checking for current thrust
+            public MyCharacterJetpackComponent JetpackComponent;
             // Gas that this character's jetpack uses as fuel
             public MyDefinitionId FuelId;
             // This character's fuel capacity
@@ -166,6 +168,7 @@ namespace SurvivalReborn
                 Inventory = (MyInventory)character.GetInventory();
                 InventoryBottles = new List<SRInventoryBottle>();
                 OxygenComponent = character.Components?.Get<MyCharacterOxygenComponent>();
+                JetpackComponent = character.Components?.Get<MyCharacterJetpackComponent>();
                 CollisionDamageEnabled = false; // disabled until character moves to prevent damage on world load on moving ship
                 RefuelDelay = 0f;
 
@@ -589,6 +592,7 @@ namespace SurvivalReborn
             // AUTO-REFUEL rule
             for (int i = m_autoRefuel.Count - 1; i >= 0; i--)
             {
+                // MyAPIGateway.Utilities.ShowMessage("DEBUG", "Refuel rule running");
                 var character = m_autoRefuel[i];
                 var characterInfo = m_charinfos[character];
                 var fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
@@ -596,7 +600,14 @@ namespace SurvivalReborn
                 // Reset cooldown and fuel check if jetpack is on
                 if (character.EnabledThrusts)
                 {
-                    characterInfo.RefuelDelay = config.JetpackCooldown;
+                    if (characterInfo.JetpackComponent.FinalThrust.LengthSquared() > 0)
+                        characterInfo.RefuelDelay += config.JetpackHeatPerSecThrust * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+                    else
+                        characterInfo.RefuelDelay += config.JetpackHeatPerSecEnabled * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+
+                    characterInfo.RefuelDelay = MathHelper.Clamp(characterInfo.RefuelDelay, config.JetpackMinCooldown, config.JetpackMaxCooldown);
+                    //characterInfo.RefuelDelay = Math.Min(characterInfo.RefuelDelay, config.JetpackMaxCooldown);
+                    //characterInfo.RefuelDelay = config.JetpackCooldown;
                     characterInfo.LastFuelLevel = fuelLevel;
                     continue;
                 }
