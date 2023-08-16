@@ -601,7 +601,7 @@ namespace SurvivalReborn
                 if (character.EnabledThrusts)
                 {
                     if (characterInfo.JetpackComponent.FinalThrust.LengthSquared() > 0)
-                        characterInfo.RefuelDelay += config.JetpackHeatPerSecThrust * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+                        characterInfo.RefuelDelay += config.JetpackHeatPerSecFiring * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
                     else
                         characterInfo.RefuelDelay += config.JetpackHeatPerSecEnabled * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
 
