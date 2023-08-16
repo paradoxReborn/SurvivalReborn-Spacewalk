@@ -45,9 +45,9 @@ namespace SurvivalReborn
         public bool CollisionTweaks = true;
         public bool CharacterMovementTweaks = true;
         // CONFIG ITEMS, Jetpack:
-        public float JetpackHeatPerSecEnabled = -0.7f;
-        public float JetpackHeatPerSecThrust = 1f;
-        public float JetpackMaxCooldown = 6f;
+        public float JetpackHeatPerSecEnabled = -0.9f;
+        public float JetpackHeatPerSecThrust = 0.5f;
+        public float JetpackMaxCooldown = 4.5f;
         public float JetpackMinCooldown = 1.5f;
         public float JetpackCooldown = 0f;
         // CONFIG ITEMS, Collision tweaks:

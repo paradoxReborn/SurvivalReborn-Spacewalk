@@ -113,7 +113,7 @@
 						<SubtypeId>Hydrogen</SubtypeId>
 					</Id>
 					<MaxCapacity>40</MaxCapacity>
-					<Throughput>5</Throughput>
+					<Throughput>8</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
@@ -121,7 +121,7 @@
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
 					<MaxCapacity>40</MaxCapacity>
-					<Throughput>5</Throughput>
+					<Throughput>8</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
