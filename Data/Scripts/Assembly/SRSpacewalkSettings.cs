@@ -46,10 +46,9 @@ namespace SurvivalReborn
         public bool CharacterMovementTweaks = true;
         // CONFIG ITEMS, Jetpack:
         public float JetpackHeatPerSecEnabled = -0.8f;
-        public float JetpackHeatPerSecFiring = 0.5f;
-        public float JetpackMaxCooldown = 4.5f;
+        public float JetpackHeatPerSecFiring = 0.4f;
+        public float JetpackMaxCooldown = 6f;
         public float JetpackMinCooldown = 1.5f;
-        public float JetpackCooldown = 0f;
         // CONFIG ITEMS, Collision tweaks:
         public float CollisionDamageThreshold = 750f;
         public float CollisionDamagePerMSS = 0.03f;
@@ -150,7 +149,10 @@ namespace SurvivalReborn
             CharacterMovementTweaks = ini.Get(section, nameof(CharacterMovementTweaks)).ToBoolean(CharacterMovementTweaks);
 
             section = "JetpackTopoff";
-            JetpackCooldown = ini.Get(section, nameof(JetpackCooldown)).ToSingle(JetpackCooldown);
+            JetpackMinCooldown = ini.Get(section, nameof(JetpackMinCooldown)).ToSingle(JetpackMinCooldown);
+            JetpackMaxCooldown = ini.Get(section, nameof(JetpackMaxCooldown)).ToSingle(JetpackMaxCooldown);
+            JetpackHeatPerSecEnabled = ini.Get(section, nameof(JetpackHeatPerSecEnabled)).ToSingle(JetpackHeatPerSecEnabled);
+            JetpackHeatPerSecFiring = ini.Get(section, nameof(JetpackHeatPerSecFiring)).ToSingle(JetpackHeatPerSecFiring);
 
             section = "CollisionTweaks";
             CollisionDamageThreshold = ini.Get(section, nameof(CollisionDamageThreshold)).ToSingle(CollisionDamageThreshold);
@@ -187,8 +189,15 @@ namespace SurvivalReborn
             ini.SetComment(section, nameof(CharacterMovementTweaks), "If false, astronauts experience double gravity and jerky movement as in vanilla.");
 
             section = "JetpackTopoff";
-            ini.Set(section, nameof(JetpackCooldown), JetpackCooldown);
-            ini.SetComment(section, nameof(JetpackCooldown), "Delay in seconds after jetpack is disabled before topoff begins.");
+            ini.Set(section, nameof(JetpackMinCooldown), JetpackMinCooldown);
+            ini.SetComment(section, nameof(JetpackMinCooldown), "Min delay in seconds after jetpack is disabled before topoff begins.");
+            ini.Set(section, nameof(JetpackMaxCooldown), JetpackMaxCooldown);
+            ini.SetComment(section, nameof(JetpackMaxCooldown), "Max cooldown that can be built up from continuous thrust.");
+            ini.Set(section, nameof(JetpackHeatPerSecEnabled), JetpackHeatPerSecEnabled);
+            ini.SetComment(section, nameof(JetpackHeatPerSecEnabled), "Cooldown time built or lost per second while jetpack is enabled but not providing thrust.");
+            ini.Set(section, nameof(JetpackHeatPerSecFiring), JetpackHeatPerSecFiring);
+            ini.SetComment(section, nameof(JetpackHeatPerSecFiring), "Cooldown time built or lost per second while jetpack is providing thrust.");
+
 
             section = "CollisionTweaks";
             ini.Set(section, nameof(CollisionDamageThreshold), CollisionDamageThreshold);
