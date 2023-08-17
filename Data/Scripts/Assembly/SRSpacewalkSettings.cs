@@ -45,8 +45,9 @@ namespace SurvivalReborn
         public bool CollisionTweaks = true;
         public bool CharacterMovementTweaks = true;
         // CONFIG ITEMS, Jetpack:
+        public float JetpackTopoffRateMult = 0.75f;
         public float JetpackHeatPerSecEnabled = -0.9f;
-        public float JetpackHeatPerSecFiring = 0.15f;
+        public float JetpackHeatPerSecFiring = 0.3f;
         public float JetpackMaxCooldown = 9f;
         public float JetpackMinCooldown = 1.5f;
         // CONFIG ITEMS, Collision tweaks:
@@ -149,6 +150,7 @@ namespace SurvivalReborn
             CharacterMovementTweaks = ini.Get(section, nameof(CharacterMovementTweaks)).ToBoolean(CharacterMovementTweaks);
 
             section = "JetpackTopoff";
+            JetpackTopoffRateMult = ini.Get(section, nameof(JetpackTopoffRateMult)).ToSingle(JetpackTopoffRateMult);
             JetpackMinCooldown = ini.Get(section, nameof(JetpackMinCooldown)).ToSingle(JetpackMinCooldown);
             JetpackMaxCooldown = ini.Get(section, nameof(JetpackMaxCooldown)).ToSingle(JetpackMaxCooldown);
             JetpackHeatPerSecEnabled = ini.Get(section, nameof(JetpackHeatPerSecEnabled)).ToSingle(JetpackHeatPerSecEnabled);
@@ -189,6 +191,8 @@ namespace SurvivalReborn
             ini.SetComment(section, nameof(CharacterMovementTweaks), "If false, astronauts experience double gravity and jerky movement as in vanilla.");
 
             section = "JetpackTopoff";
+            ini.Set(section, nameof(JetpackTopoffRateMult), JetpackTopoffRateMult);
+            ini.SetComment(section, nameof(JetpackTopoffRateMult), "Multiplier for fuel topoff rate, versus SK/Med Room refill rate.");
             ini.Set(section, nameof(JetpackMinCooldown), JetpackMinCooldown);
             ini.SetComment(section, nameof(JetpackMinCooldown), "Min delay in seconds after jetpack is disabled before topoff begins.");
             ini.Set(section, nameof(JetpackMaxCooldown), JetpackMaxCooldown);

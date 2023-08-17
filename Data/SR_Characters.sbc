@@ -113,7 +113,7 @@
 						<SubtypeId>Hydrogen</SubtypeId>
 					</Id>
 					<MaxCapacity>60</MaxCapacity>
-					<Throughput>9</Throughput>
+					<Throughput>12</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
@@ -121,7 +121,7 @@
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
 					<MaxCapacity>30</MaxCapacity>
-					<Throughput>4.5</Throughput>
+					<Throughput>6</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
@@ -129,7 +129,7 @@
 						<SubtypeId>Water</SubtypeId>
 					</Id>
 					<MaxCapacity>30</MaxCapacity>
-					<Throughput>4.5</Throughput>
+					<Throughput>6</Throughput>
 				</Resource>
 			</SuitResourceStorage>
 
@@ -565,7 +565,7 @@
 						<SubtypeId>Hydrogen</SubtypeId>
 					</Id>
 					<MaxCapacity>60</MaxCapacity>
-					<Throughput>9</Throughput>
+					<Throughput>12</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
@@ -573,7 +573,7 @@
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
 					<MaxCapacity>30</MaxCapacity>
-					<Throughput>4.5</Throughput>
+					<Throughput>6</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
@@ -581,7 +581,7 @@
 						<SubtypeId>Water</SubtypeId>
 					</Id>
 					<MaxCapacity>30</MaxCapacity>
-					<Throughput>4.5</Throughput>
+					<Throughput>6</Throughput>
 				</Resource>
 			</SuitResourceStorage>
 

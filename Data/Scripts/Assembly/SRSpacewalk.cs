@@ -283,7 +283,7 @@ namespace SurvivalReborn
                 MyLog.Default.WriteLine("SurvivalReborn: MyPerGameSettings.CharacterGravityMultiplier set to: " + MyPerGameSettings.CharacterGravityMultiplier);
             }
 
-            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.2.0.");
+            MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.3.0.");
             //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Stable 1.1.3.");
             //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Loaded Spacewalk Release Candidate C for version 1.1.");
             //MyAPIGateway.Utilities.ShowMessage("SurvivalReborn", "Loaded Spacewalk Release Candidate C for version 1.1.");
@@ -597,13 +597,24 @@ namespace SurvivalReborn
                 var characterInfo = m_charinfos[character];
                 var fuelLevel = characterInfo.OxygenComponent.GetGasFillLevel(characterInfo.FuelId);
 
+                //if (characterInfo.RefuelDelay > 0)
+                //    MyAPIGateway.Utilities.ShowNotification("Jetpack heat: " + characterInfo.RefuelDelay, MyEngineConstants.UPDATE_STEP_SIZE_IN_MILLISECONDS);
+
                 // Reset cooldown and fuel check if jetpack is on
                 if (character.EnabledThrusts)
                 {
+                    // This is a somewhat imprecise calculation of the proportion of max thrust output
+                    float thrustModifier = Math.Min(1, characterInfo.JetpackComponent.FinalThrust.LengthSquared() / (float)Math.Pow(characterInfo.JetpackComponent.ForceMagnitude, 2));
+                    // Interpolate between the two values
+                    float deltaCooldown = (config.JetpackHeatPerSecFiring * thrustModifier) + (config.JetpackHeatPerSecEnabled * (1 - thrustModifier));
+                    characterInfo.RefuelDelay += deltaCooldown * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+
+                    /*
                     if (characterInfo.JetpackComponent.FinalThrust.LengthSquared() > 0)
                         characterInfo.RefuelDelay += config.JetpackHeatPerSecFiring * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
                     else
                         characterInfo.RefuelDelay += config.JetpackHeatPerSecEnabled * MyEngineConstants.UPDATE_STEP_SIZE_IN_SECONDS;
+                    */
 
                     characterInfo.RefuelDelay = MathHelper.Clamp(characterInfo.RefuelDelay, config.JetpackMinCooldown, config.JetpackMaxCooldown);
                     //characterInfo.RefuelDelay = Math.Min(characterInfo.RefuelDelay, config.JetpackMaxCooldown);
@@ -637,7 +648,7 @@ namespace SurvivalReborn
 
                         // Calculate gas moved from this bottle (note that fuel flow appears to be in gas/sec)
                         double fuelNeeded = characterInfo.FuelCapacity * (1.0f - fuelLevel);
-                        double gasToTake = Math.Min(characterInfo.FuelThroughput * 1.5, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
+                        double gasToTake = Math.Min(characterInfo.FuelThroughput * config.JetpackTopoffRateMult * 1.5, Math.Min(bottle.currentFillLevel * bottle.capacity, fuelNeeded));
                         //MyLog.Default.WriteLineAndConsole("SurvivalReborn: Gas to take from bottle: " + gasToTake);
 
                         // Transfer Gas
