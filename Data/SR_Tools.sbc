@@ -15,14 +15,14 @@
 				<Z>0.08</Z>
 			</Size>
 			<Mass>30</Mass>
-			<Volume>120</Volume>
+			<Volume>80</Volume>
 			<Model>Models\Components\OxygenTankItem.mwm</Model>
 			<PhysicalMaterial>Metal</PhysicalMaterial>
 			<StoredGasId>
 				<TypeId>GasProperties</TypeId>
 				<SubtypeId>Oxygen</SubtypeId>
 			</StoredGasId>
-			<Capacity>120</Capacity>
+			<Capacity>90</Capacity>
 			<MinimumOfferAmount>5</MinimumOfferAmount>
 			<MaximumOfferAmount>10</MaximumOfferAmount>
 			<MinimumOrderAmount>20</MinimumOrderAmount>
@@ -45,14 +45,14 @@
 				<Z>0.08</Z>
 			</Size>
 			<Mass>30</Mass>
-			<Volume>120</Volume>
+			<Volume>80</Volume>
 			<Model>Models\Components\HydrogenTankItem.mwm</Model>
 			<PhysicalMaterial>Metal</PhysicalMaterial>
 			<StoredGasId>
 				<TypeId>GasProperties</TypeId>
 				<SubtypeId>Hydrogen</SubtypeId>
 			</StoredGasId>
-			<Capacity>120</Capacity>
+			<Capacity>180</Capacity>
 			<MinimumOfferAmount>5</MinimumOfferAmount>
 			<MaximumOfferAmount>10</MaximumOfferAmount>
 			<MinimumOrderAmount>20</MinimumOrderAmount>

@@ -102,7 +102,7 @@
 			<OxygenSuitRefillTime>1000000</OxygenSuitRefillTime>
 			<MinOxygenLevelForSuitRefill>0.75</MinOxygenLevelForSuitRefill>
 			<PressureLevelForLowDamage>0.5</PressureLevelForLowDamage>
-			<DamageAmountAtZeroPressure>7</DamageAmountAtZeroPressure>
+			<DamageAmountAtZeroPressure>5</DamageAmountAtZeroPressure>
 			<NeedsOxygen>false</NeedsOxygen>
 			<!--<HelmetVariation>Engineer_suit_no_helmet</HelmetVariation>-->
 
@@ -112,24 +112,24 @@
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Hydrogen</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>60</MaxCapacity>
+					<Throughput>9</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>30</MaxCapacity>
+					<Throughput>4.5</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Water</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>30</MaxCapacity>
+					<Throughput>4.5</Throughput>
 				</Resource>
 			</SuitResourceStorage>
 
@@ -554,7 +554,7 @@
 			<OxygenSuitRefillTime>1000000</OxygenSuitRefillTime>
 			<MinOxygenLevelForSuitRefill>0.75</MinOxygenLevelForSuitRefill>
 			<PressureLevelForLowDamage>0.5</PressureLevelForLowDamage>
-			<DamageAmountAtZeroPressure>7</DamageAmountAtZeroPressure>
+			<DamageAmountAtZeroPressure>5</DamageAmountAtZeroPressure>
 			<NeedsOxygen>false</NeedsOxygen>
 			<!--<HelmetVariation>Engineer_suit_no_helmet</HelmetVariation>-->
 
@@ -564,24 +564,24 @@
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Hydrogen</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>60</MaxCapacity>
+					<Throughput>9</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Oxygen</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>30</MaxCapacity>
+					<Throughput>4.5</Throughput>
 				</Resource>
 				<Resource>
 					<Id>
 						<TypeId>GasProperties</TypeId>
 						<SubtypeId>Water</SubtypeId>
 					</Id>
-					<MaxCapacity>40</MaxCapacity>
-					<Throughput>8</Throughput>
+					<MaxCapacity>30</MaxCapacity>
+					<Throughput>4.5</Throughput>
 				</Resource>
 			</SuitResourceStorage>
 
